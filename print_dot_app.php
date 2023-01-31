@@ -257,7 +257,7 @@ class PrintDotApp {
 				mode: '{$pda_mode}',
 				createButtons: true,
 				projectId: '{$pda_project_id}',
-				pluginRoot: '" . site_url() . "/print.app',
+				pluginRoot: '" . site_url() . "/print_dot_app',
 				domainKey: '" . $pda_domain_key . "',
 				client: 'wp',
 				product: {
@@ -363,7 +363,7 @@ class PrintDotApp {
 	// PLUGIN LINKS AFTER DEACTIVATE/ACTIVATE
 	public function print_dot_app_add_settings_link($links) {
 		$settings_link = array(
-			'<a href="/wp-admin/admin.php?page=print.app" target="_blank" rel="noopener">Settings</a>',
+			'<a href="/wp-admin/admin.php?page=print_dot_app" target="_blank" rel="noopener">Settings</a>',
 		);
 		$actions = array_merge( $links, $settings_link );
 		return $actions;
