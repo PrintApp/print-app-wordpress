@@ -1,4 +1,4 @@
-/* global print_dot_app_current_design fetch wp_ajax_url*/
+/* global print_app_current_design fetch wp_ajax_url*/
 
 (async function(){
     const req   = new XMLHttpRequest();
@@ -7,7 +7,7 @@
             const data = new FormData();
             
             if (path) data.append('path', path);
-            data.append('action', 'print_dot_app_fetch_designs');
+            data.append('action', 'print_app_fetch_designs');
             
             req.onreadystatechange = function() {
                 if (req.readyState == 4) {
@@ -23,19 +23,19 @@
     };
     
     const style = `
-    <style id="print_dot_app_design_styling" type="text/css">
-        div.print_dot_app_design_list {
+    <style id="print_app_design_styling" type="text/css">
+        div.print_app_design_list {
             position: relative;
             float: left;
             width: 51.6%;
             height: 36px;
         }
         @media only screen and (max-width: 1280px) {
-            div.print_dot_app_design_list {
+            div.print_app_design_list {
                 width: 81.6%;
             }
         }
-        div.print_dot_app_design_list > div {
+        div.print_app_design_list > div {
             position: absolute;
             background: white;
             width: calc(100% - 22px);
@@ -44,7 +44,7 @@
             border-radius: 5px;
             z-index: 10;
         }
-        div.print_dot_app_design_list input[type=radio] {
+        div.print_app_design_list input[type=radio] {
             margin-bottom: 3px;
         }
         .chevron {
@@ -92,10 +92,10 @@
         div.item:hover {
             background-color: #e5e1e1;
         }
-        div.print_dot_app_design_list .level-1 {
+        div.print_app_design_list .level-1 {
             margin-left: 20px
         }
-        div.print_dot_app_select {
+        div.print_app_select {
             border: 1px solid #9052ab;
             border-radius: 5px;
             cursor:pointer;
@@ -106,42 +106,40 @@
             width: 50%;
         }
         @media only screen and (max-width: 1280px) {
-            div.print_dot_app_select {
+            div.print_app_select {
                 width: 80%;
             }
         }
-        .print_dot_app_indent_list {
+        .print_app_indent_list {
             margin-left: 20px
         }
     </style>`;
     document.head.insertAdjacentHTML('beforeEnd', style);
 
     // INITIATE ROOT ITEMS
-    const main = document.querySelector('#print_dot_app_design');
+    const main = document.querySelector('#print_app_design');
     if (!main.length) return;
     
     let input = await pdaLoadItems();
 
     const sel = document.createElement('div');
-    sel.classList.add("print_dot_app_design_list");
+    sel.classList.add("print_app_design_list");
 
     let html = `<div>
                     <div class="item">
-                        <input type="radio" value="0" name="print_dot_app_design"/>
+                        <input type="radio" value="0" name="print_app_design"/>
                         <span class="folder" data-id="0">None</span>
                     </div>`;
 
-    if (input && input.data && input.data.items) {
+     if (input && input.data && input.data.items) {
         input.data.items.forEach(item=>{
-            if(item.type == 'folder') {
-                html+= `<div>
-                            <div class="item">
-                                <input type="radio" value="${item.id}:${item.title}" name="print_dot_app_design"/>
-                                ${item.items && item.items.length ? '<span class="chevron right" data-id="'+item.id+'"></span>' : ''}
-                                <span>${item.title}</span>
-                            </div>
-                        </div>`;
-            }
+            html+= `<div>
+                        <div class="item">
+                            <input type="radio" value="${item.id}__${item.title}" name="print_app_design"/>
+                            ${item.items && item.items.length ? '<span class="chevron right" data-id="'+item.id+'"></span>' : ''}
+                            <span>${item.title}</span>
+                        </div>
+                    </div>`;
         })
     }
     html+='</div>';
@@ -150,8 +148,8 @@
     sel.style.display = 'none';
 
     main.style.display='none';
-    const cDesignVals = print_dot_app_current_design.split(':');
-    main.insertAdjacentHTML('beforebegin', `<div class="print_dot_app_select">
+    const cDesignVals = print_app_current_design.split('__');
+    main.insertAdjacentHTML('beforebegin', `<div class="print_app_select">
         <span>${cDesignVals[2] || cDesignVals[1] || 'None'}</span>
         <span class="chevron bottom"></span>
     </div>`);
@@ -161,7 +159,7 @@
     main.insertAdjacentElement('beforebegin',sel);
     
     // WHEN DROPDOWN IS CLICKED, SHOW THE LIST
-    document.querySelector('.print_dot_app_select').addEventListener('click', function(e) {
+    document.querySelector('.print_app_select').addEventListener('click', function(e) {
         newMain.style.display = 'none';
         sel.style.display = 'block';
         e.stopPropagation();
@@ -169,9 +167,9 @@
     
     // UPON CLICK AWAY, CLOSE THE DROP DOWN AND SET THE SELECTED VALUE
     window.addEventListener('click', function() {
-        const selectedValue = document.querySelector('[name=print_dot_app_design]:checked');
+        const selectedValue = document.querySelector('[name=print_app_design]:checked');
         if (selectedValue) {
-            const selectedValItems = selectedValue.value.split(':');
+            const selectedValItems = selectedValue.value.split('__');
             newMain.children[0].innerText = selectedValItems[2] || selectedValItems[1] || 'None';
         }
         newMain.style.display = 'flex';
@@ -179,7 +177,7 @@
     });
     
     // ONLY WHEN CLICK ON DROPDOWN DON'T HIDE ANYTHING
-    document.querySelector('div.print_dot_app_design_list').addEventListener('click', e => e.stopPropagation());
+    document.querySelector('div.print_app_design_list').addEventListener('click', e => e.stopPropagation());
     
     // ADD EVENT LISTENERS TO ROOT ITEMS
     const chevStatus = {};
@@ -214,10 +212,10 @@
             target.parentElement.lastChild.remove();
 
             if (input && input.data) {
-                let list = `<div class="print_dot_app_indent_list">`;
+                let list = `<div class="print_app_indent_list">`;
                 input.data.forEach(item=>{
                     list += `<div class="item">
-                                <input type="radio" value="${item.id}:${item.title}" name="print_dot_app_design"/>
+                                <input type="radio" value="${item.id}__${item.title}" name="print_app_design"/>
                                 ${item.items && item.items.length ? '<span class="chevron right" data-id="'+item.id+'"></span>' : ''}
                                 <span">${item.title}</span>
                             </div>`;
@@ -240,9 +238,9 @@
         }
         event.stopPropagation();
     }
-    document.querySelectorAll('.print_dot_app_design_list .chevron').forEach(item => {
+    document.querySelectorAll('.print_app_design_list .chevron').forEach(item => {
         item.addEventListener('click', chevClicked);
     });
     // REMOVE OLD INPUT ELEMENT
-    document.querySelector('select[name="print_dot_app_design"]').remove();
+    document.querySelector('select[name="print_app_design"]').remove();
 })();
