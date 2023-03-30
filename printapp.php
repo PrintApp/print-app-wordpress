@@ -1,14 +1,14 @@
 <?php
  /**
- * Plugin Name: 		PrintApp
+ * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
  * Description: 		An app that helps web2print shops, allow their customers to design, online.
- * Version: 			1.0
+ * Version: 			1.0.2
  * Requires at least: 	3.8
- * Requires PHP:      	7.0
- * Author:            	PrintApp
- * Author URI:        	https://print.app
- * Tested up to: 5.7
+ * Requires PHP:      	5.2.4
+ * Author:            	36 Studios, Inc.
+ * Author URI:        	https://36.studio
+ * Tested up to: 6.1
  * WC requires at least: 3.0.0
  * WC tested up to: 5.6.0
  *
@@ -17,9 +17,6 @@
  * @author PrintApp
  */
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
 class PrintApp {
@@ -37,7 +34,7 @@ class PrintApp {
 		define('print_app_WP_CLIENT_JS', plugin_dir_url( __FILE__ ) . 'js/wp-client.js');
 		define('print_app_DESIGN_TREE_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/designTreeSelect.js');
 		define('print_app_SESSION_ID', 'print_app_sessId');
-		define('print_app_RUNTIME_API_URL', 'https://yhlk1004od.execute-api.eu-west-1.amazonaws.com/prod/runtime');
+		define('print_app_RUNTIME_API_URL', 'https://api.print.app/runtime');
 	}
 	// INITIALIZE HOOKS FOR THIS PLUGIN
 	public function init_hooks() {
@@ -56,7 +53,6 @@ class PrintApp {
 		}
 		else if ($this->request_type('admin')) {
 			add_action('wp_ajax_print_app_fetch_designs', array($this, 'print_app_fetch_designs'));
-			add_action('admin_head', array( $this, 'custom_css_icon' ) );
 			add_action('admin_menu', array($this, 'print_app_actions'));
 			add_action('admin_init', array($this, 'print_app_settings_api_init'));
 			add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'print_app_add_settings_link'));
@@ -74,12 +70,6 @@ class PrintApp {
 
 	public function print_app_styling() {
 		wp_enqueue_style( 'print_app_admin_styling', plugin_dir_url( __FILE__ ) .'css/admin.css' );
-	  echo '<style>
-	    body, td, textarea, input, select {
-	      font-family: "Lucida Grande";
-	      font-size: 12px;
-	    } 
-	  </style>';
 	}
 	// REMOVE PREVIEW ON LINE META ITEMS IN ORDER DETAILS ON ADMIN
 	public function print_app_remove_preview_line_item_from_meta($formatted_meta, $item) {
@@ -91,7 +81,7 @@ class PrintApp {
 		return $formatted_meta;
 	}
 	
-	// FORMAT THE MATA DATA ON ORDER TO DISPLAY DOWNLOAD LINKS
+	// FORMAT THE META DATA ON ORDER TO DISPLAY DOWNLOAD LINKS
 	public function print_app_filter_wc_order_item_display_meta_value( $display_value, $meta ) {
 		if( $meta->key === '_pda_w2p_set_option' ) {
 			$pda_data = json_decode($display_value, true);
@@ -153,7 +143,7 @@ class PrintApp {
 	// REMOVE PROJECTS FROM SESSION
 	private function clearProjects($productId) {
 		global $wpdb;
-		$sessId = isset($_COOKIE['print_app_sessId']) ? $_COOKIE['print_app_sessId'] : false;
+		$sessId = isset($_COOKIE['print_app_sessId']) ? sanitize_text_field($_COOKIE['print_app_sessId']) : false;
 		if (!$sessId) return false;
 		$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
 	}
@@ -166,55 +156,64 @@ class PrintApp {
 	// SAVE PROJECT DATA ON CLIENT SERVER FOR PAGE REFRESH AND NOT YET ADDED TO CART.
 	public function print_app_reset_project() {
 		global $wpdb;
-		$productId	= $_POST['product_id'];
-		$sessId 	= $_COOKIE['print_app_sessId'];
-		
-		// Delete old
-		$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
-		wp_die(json_encode(array('success'=>true))); 
+		$productId	= sanitize_text_field($_POST['product_id']);
+		if (isset($_COOKIE['print_app_sessId'])) {
+			$sessId = sanitize_text_field($_COOKIE['print_app_sessId']);
+			// Delete old
+			$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
+			wp_die(json_encode(array('success'=>true))); 
+			return;
+		}
+		wp_die(json_encode(array('success'=>false)));
 	}
 	// FETCH DESIGNS FOR ASSIGNING IN BACKEND.
 	public function print_app_fetch_designs() {
 		$authKey = get_option('print_app_secret_key');
-		$url = print_app_RUNTIME_API_URL.'/designs'.(isset($_POST['path']) ? '/'.$_POST['path'] : '');
-		// die($url);
-		$curl = curl_init();
-		curl_setopt_array($curl, array(
-		  CURLOPT_URL => $url,
-		  CURLOPT_RETURNTRANSFER => true,
-		  CURLOPT_ENCODING => '',
-		  CURLOPT_MAXREDIRS => 10,
-		  CURLOPT_TIMEOUT => 0,
-		  CURLOPT_FOLLOWLOCATION => true,
-		  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-		  CURLOPT_CUSTOMREQUEST => 'GET',
-		  CURLOPT_HTTPHEADER => array(
-		    'Authorization: '.$authKey
-		  ),
-		));
-		
-		$response = curl_exec($curl);
-		
-		curl_close($curl);
-		wp_die($response); 
+		$url = sanitize_url( print_app_RUNTIME_API_URL.'/designs'.( isset($_POST['path']) ? '/'.sanitize_url( $_POST['path'] ) : '' ) );
+		$response = wp_remote_get( $url , array('headers'=>array('Authorization' => $authKey) ) );
+		wp_die( wp_remote_retrieve_body($response) ); 
+	}
+	//  A CUSTOM FUNCTION TO SANITIZE OUR PITCHPRINT VALUE OBJECT
+	private function custom_sanitize_pp_object($object, $allowedKeys) {
+		$cleanItem = array();
+		foreach($object as $key => $value) {
+			if (in_array($key, $allowedKeys)) {
+				if ($key == 'previews' && is_array($value)) {
+					$cleanItem[$key] = array();
+					foreach ($value as $prevKey => $prev)
+						if(is_array($prev)) {
+							$cleanItem[$key][$prevKey] = array();
+							$cleanItem[$key][$prevKey]['url'] = sanitize_url($prev['url']);//sanitize_url($url);
+						}
+				}
+				elseif ($key == 'isAdmin')
+					$cleanItem[$key] = rest_sanitize_boolean($value);
+				else
+					$cleanItem[$key] = sanitize_text_field($value);
+			}
+		}
+		return $cleanItem;
 	}
 	// SAVE PROJECT DATA ON CLIENT SERVER FOR PAGE REFRESH AND NOT YET ADDED TO CART.
 	public function print_app_save_project() {
 		global $wpdb;
-		
-		$value	= $_POST['value'];
-		$productId	= $_POST['product_id'];
-		$sessId 	= $_COOKIE['print_app_sessId'];
-		
-		// Delete old
-		$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
-		
-		// Insert new
-		$date = date('Y-m-d H:i:s', time()+60*60*24*30);
-		$table_name = print_app_TABLE_NAME;
-		$sql = "INSERT INTO `{$table_name}` VALUES ('$sessId', '$productId', '$value', '$date')";
-		$exec = dbDelta($sql);
-		wp_die(json_encode(array('success'=>true))); 
+		if (!isset($_POST ['value'])) return;
+		$value		= json_decode(stripslashes(html_entity_decode($_POST['value'])), true);
+		$value		= $this->custom_sanitize_pp_object($value, array('mode','projectId','isAdmin','sourceDesignId','previews'));
+		if (!$value) return wp_die(json_encode(array('success'=>false)));
+		$productId	= sanitize_text_field($_POST['product_id']);
+		if (isset($_COOKIE['print_app_sessId'])) {
+			$sessId = sanitize_text_field($_COOKIE['print_app_sessId']);
+			// Delete old
+			$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
+			// Insert new
+			$date = date('Y-m-d H:i:s', time()+60*60*24*30);
+			$table_name = print_app_TABLE_NAME;
+			$sql = $wpdb->prepare("INSERT INTO `{$table_name}` VALUES (%s, %d, %s, %s)", $sessId, $productId, json_encode($value), $date);
+			$exec = dbDelta($sql);
+			wp_die(json_encode(array('success'=>true))); 
+		}
+		wp_die(json_encode(array('success'=>false))); 
 	}
 	// DISTINGUISH WHERE THE REQUEST IS FROM, FRONT OR BACK
 	private function request_type( $type ) {
@@ -233,9 +232,9 @@ class PrintApp {
 	private function getProjectData($product_id) {
 		global $wpdb;
 		$_projects	= array();
-		$sessId 	= $_COOKIE[print_app_SESSION_ID];
+		$sessId 	= sanitize_text_field($_COOKIE[print_app_SESSION_ID]);
 		$tableName	= print_app_TABLE_NAME;
-		$sql		= "SELECT `value` FROM `$tableName` WHERE `product_id` = $product_id AND `id` = '$sessId';";
+		$sql		= $wpdb->prepare("SELECT `value` FROM `$tableName` WHERE `product_id` = %d AND `id` = %s;", $product_id, $sessId);
 		
 		$results = $wpdb->get_results($sql);
 		if(count($results))
@@ -269,6 +268,7 @@ class PrintApp {
 		$projects		= $this->getProjectData($post->ID);
 		if (count($projects)) 
 			$projectData = json_decode($projects[$post->ID], true);
+		// var_dump($projectData);die();
 			
 		$pda_project_id = isset($projectData) ? $projectData['projectId'] : '';
 		$pda_mode		= $pda_project_id ? 'edit-project':'new-project';
@@ -308,11 +308,11 @@ class PrintApp {
 	}
 	// SAVE PRODUCT POST META
 	public function print_app_save_post_meta ($post_id) {
-		update_post_meta($post_id, 'print_app_design', $_POST['print_app_design']);
-		update_post_meta($post_id, 'print_app_display_mode', $_POST['print_app_display_mode']);
-		update_post_meta($post_id, 'print_app_customization_required', $_POST['print_app_customization_required']);
-		update_post_meta($post_id, 'print_app_pdf_download', $_POST['print_app_pdf_download']);
-		update_post_meta($post_id, 'print_app_use_design_preview', $_POST['print_app_use_design_preview']);
+		update_post_meta($post_id, 'print_app_design', sanitize_text_field($_POST['print_app_design']));
+		update_post_meta($post_id, 'print_app_display_mode', sanitize_text_field($_POST['print_app_display_mode']));
+		update_post_meta($post_id, 'print_app_customization_required', sanitize_text_field($_POST['print_app_customization_required']));
+		update_post_meta($post_id, 'print_app_pdf_download', sanitize_text_field($_POST['print_app_pdf_download']));
+		update_post_meta($post_id, 'print_app_use_design_preview', sanitize_text_field($_POST['print_app_use_design_preview']));
 	}
 	// SHOW DESIGN SELECTION FORM
 	public function print_app_assign_design_form() {
@@ -389,19 +389,10 @@ class PrintApp {
 	    );
 	    return $default_tabs;
 	}
-	// CSS FOR MENU ITEM ICON
-	public function custom_css_icon() {
-		echo '<style type="text/css">
-			#toplevel_page_print_app .wp-menu-image img {
-				width: 22px;
-    			padding-top: 5px;
-			}
-		</style>';
-	}
 	// PLUGIN LINKS AFTER DEACTIVATE/ACTIVATE
 	public function print_app_add_settings_link($links) {
 		$settings_link = array(
-			'<a href="/wp-admin/admin.php?page=print_app" target="_blank" rel="noopener">Settings</a>',
+			'<a href="/wp-admin/admin.php?page=printapp" target="_blank" rel="noopener">Settings</a>',
 		);
 		$actions = array_merge( $links, $settings_link );
 		return $actions;
@@ -432,24 +423,24 @@ class PrintApp {
 	}
 	// DISPLAY DOMAIN KEY INPUT
 	public function print_app_domain_key() {
-		echo '<input class="regular-text" id="print_app_domain_key" name="print_app_domain_key" type="text" value="' . get_option('print_app_domain_key') . '" />';
+		echo  '<input class="regular-text" id="print_app_domain_key" name="print_app_domain_key" type="text" value="' . esc_html( get_option('print_app_domain_key') ) . '" />';
 	}
 	// DISPLAY SECRET KEY INPUT
 	public function print_app_secret_key() {
-		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . get_option('print_app_secret_key') . '" />';
+		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . esc_html( get_option('print_app_secret_key') ) . '" />';
 	}
 	// DISPLAY SHOW ON CATEGORY SWITCH
 	public function print_app_cat_customize() {
-		echo '<input class="regular-text" id="print_app_cat_customize" name="print_app_cat_customize" type="checkbox" '. ( get_option('print_app_cat_customize') == 'on' ? 'checked' : '' ) . ' />';
+		echo '<input class="regular-text" id="print_app_cat_customize" name="print_app_cat_customize" type="checkbox" '. esc_html( ( get_option('print_app_cat_customize') == 'on' ? 'checked' : '' )  ) . ' />' ;
 	}
 	// DISPLAY MESSAGE: HOW TO GET NEW DOMAIN KEY
 	public function print_app_create_settings() {
-		echo '<p>' . __("You can generate your api and secret keys from the <a target=\"_blank\" href=\"https://admin.print.app/domains\">PrintApp domains page</a>", "PrintApp") . '</p>';
+		echo '<p>' . __("You can generate your api and secret keys from the <a target=\"_blank\" href=\"https://admin.print.app/domains\">PrintApp domains page</a>", "PrintApp") . '</p>' ;
 	}
 	// ADD PLUGIN MENU TO ADMIN
 	public function print_app_actions() {
 		$menu_icon = plugin_dir_url( __FILE__ ) .'assets/icon.svg';
-		add_menu_page('PrintApp Settings', 'PrintApp', 'manage_options', 'print_app', array($this, 'print_app_admin_page'), $menu_icon);
+		add_menu_page('PrintApp Settings', 'PrintApp', 'manage_options', 'printapp', array($this, 'print_app_admin_page'), $menu_icon);
 	}
 }
  
