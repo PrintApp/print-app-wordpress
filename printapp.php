@@ -169,7 +169,7 @@ class PrintApp {
 	// FETCH DESIGNS FOR ASSIGNING IN BACKEND.
 	public function print_app_fetch_designs() {
 		$authKey = get_option('print_app_secret_key');
-		$url = sanitize_url( print_app_RUNTIME_API_URL.'/designs'.( isset($_POST['path']) ? '/'.sanitize_url( $_POST['path'] ) : '' ) );
+		$url =  print_app_RUNTIME_API_URL.'/designs'.( isset($_POST['path']) ? '/'.$_POST['path']  : '' ) ;
 		$response = wp_remote_get( $url , array('headers'=>array('Authorization' => $authKey) ) );
 		wp_die( wp_remote_retrieve_body($response) ); 
 	}
