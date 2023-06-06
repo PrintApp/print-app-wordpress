@@ -2,7 +2,7 @@
  /**
  * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
- * Description: 		An app that helps web2print shops, allow their customers to design, online.
+ * Description: 		A Woocommerce module that allows your customers to personalize print products like business cads, photo prints, t-shirts, mugs, etc..
  * Version: 			1.0.2
  * Requires at least: 	3.8
  * Requires PHP:      	5.2.4
@@ -25,17 +25,20 @@ class PrintApp {
 		$this->define_constants();
 		$this->init_hooks();
 	}
+
 	// DECLARE SOME CONSTANTS USED FOR THIS PLUGIN
 	private function define_constants() {
 		global $wpdb;
 		define('print_app_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 		define('print_app_TABLE_NAME', $wpdb->prefix . 'print_app_projects' );
 		define('print_app_CLIENT_JS', 'https://editor.print.app/js/client.js');
+		define('print_app_RUN_BASE_URL', 'https://run.print.app');
 		define('print_app_WP_CLIENT_JS', plugin_dir_url( __FILE__ ) . 'js/wp-client.js');
-		define('print_app_DESIGN_TREE_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/designTreeSelect.js');
+		define('print_app_DESIGN_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/design-select.js');
 		define('print_app_SESSION_ID', 'print_app_sessId');
 		define('print_app_RUNTIME_API_URL', 'https://api.print.app/runtime');
 	}
+
 	// INITIALIZE HOOKS FOR THIS PLUGIN
 	public function init_hooks() {
 		// INITIALIZE ADMIN HOOKS
@@ -71,6 +74,7 @@ class PrintApp {
 	public function print_app_styling() {
 		wp_enqueue_style( 'print_app_admin_styling', plugin_dir_url( __FILE__ ) .'css/admin.css' );
 	}
+
 	// REMOVE PREVIEW ON LINE META ITEMS IN ORDER DETAILS ON ADMIN
 	public function print_app_remove_preview_line_item_from_meta($formatted_meta, $item) {
 		foreach ($formatted_meta as $key => $meta) {
@@ -103,12 +107,14 @@ class PrintApp {
 		}
 		return $display_value;  
 	}
+
 	// CHANGE THE META LABEL TO SOMETHING MORE HUMAN READABLE
 	public function print_app_filter_wc_order_item_display_meta_key( $display_key, $meta, $item ) {
 	    if( $meta->key === '_pda_w2p_set_option' ) 
 	    	$display_key = "PrintApp";
 	    return $display_key;    
 	}
+
 	// ADD PROJECT DATA AS META DATA ON ORDER ITEMS
 	public function print_app_add_order_item_meta($order_item, $cart_item_key) {
 		// var_dump($order_item);die();
@@ -120,6 +126,7 @@ class PrintApp {
 		if	( gettype($cart_item) == 'object' && isset($cart_item->legacy_values) && isset($cart_item->legacy_values['_pda_w2p_set_option']) )
 			$order_item->add_meta_data( '_pda_w2p_set_option', $cart_item->legacy_values['_pda_w2p_set_option'], true );
 	}
+
 	// SHOW PROJECT PREVIEW IN THUMBNAIL
 	public function print_app_cart_thumbnail($img, $val) {
 		if (!empty($val['_pda_w2p_set_option'])) {
@@ -129,6 +136,7 @@ class PrintApp {
 		}
 		return $img;
 	}
+
 	// ADD PROJECT DATA AS META TO CART ITEMS
 	public function print_app_add_cart_item_data($cart_item_meta, $product_id) {
 		$_projects = $this->getProjectData($product_id);
@@ -140,6 +148,7 @@ class PrintApp {
 		}
 		return $cart_item_meta;
 	}
+
 	// REMOVE PROJECTS FROM SESSION
 	private function clearProjects($productId) {
 		global $wpdb;
@@ -147,12 +156,14 @@ class PrintApp {
 		if (!$sessId) return false;
 		$wpdb->delete(print_app_TABLE_NAME, array('id' => $sessId, 'product_id' => $productId) );
 	}
+
 	// CREATE UNIQUE SESSION ID FOR EACH CUSTOMER
 	public function register_session() {
 		// die('init');
 		if(!isset($_COOKIE['print_app_sessId']))
 			setcookie('print_app_sessId', uniqid('pda_w2p_', true), time()+60*60*24*30, '/');
 	}
+
 	// SAVE PROJECT DATA ON CLIENT SERVER FOR PAGE REFRESH AND NOT YET ADDED TO CART.
 	public function print_app_reset_project() {
 		global $wpdb;
@@ -166,6 +177,7 @@ class PrintApp {
 		}
 		wp_die(json_encode(array('success'=>false)));
 	}
+
 	// FETCH DESIGNS FOR ASSIGNING IN BACKEND.
 	public function print_app_fetch_designs() {
 		$authKey = get_option('print_app_secret_key');
@@ -173,6 +185,7 @@ class PrintApp {
 		$response = wp_remote_get( $url , array('headers'=>array('Authorization' => $authKey) ) );
 		wp_die( wp_remote_retrieve_body($response) ); 
 	}
+
 	//  A CUSTOM FUNCTION TO SANITIZE OUR PITCHPRINT VALUE OBJECT
 	private function custom_sanitize_pp_object($object, $allowedKeys) {
 		$cleanItem = array();
@@ -194,6 +207,7 @@ class PrintApp {
 		}
 		return $cleanItem;
 	}
+
 	// SAVE PROJECT DATA ON CLIENT SERVER FOR PAGE REFRESH AND NOT YET ADDED TO CART.
 	public function print_app_save_project() {
 		global $wpdb;
@@ -215,6 +229,7 @@ class PrintApp {
 		}
 		wp_die(json_encode(array('success'=>false))); 
 	}
+
 	// DISTINGUISH WHERE THE REQUEST IS FROM, FRONT OR BACK
 	private function request_type( $type ) {
 		switch ( $type ) {
@@ -228,6 +243,7 @@ class PrintApp {
 				return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
 		}
 	}
+
 	// GET SAVED PROJECT DATA BY SESSION ID STORED IN COOKIE
 	private function getProjectData($product_id) {
 		global $wpdb;
@@ -242,70 +258,53 @@ class PrintApp {
 		
 		return $_projects;
 	}
+
 	// DISPLAY THE EDIT BUTTON
 	public function print_app_add_edit_button() {
 		global $post;
-		global $woocommerce;
+		// global $woocommerce;
 		// CHECK IF DESIGN IS ASSIGNED TO THIS PRODUCT
-		$designId = get_post_meta($post->ID, 'print_app_design', true );
-		// var_dump($designId);
-		if (!$designId) return;
-		// die('alcinojvr');
-		$designId = explode('__', $designId);
-		$designId = $designId[0];
+		// $designId = get_post_meta($post->ID, 'print_app_design', true );
+		// if (!$designId) return;
+		// $designId = explode('__', $designId);
+		// $designId = $designId[0];
+		$pda_domain_key = get_option('print_app_domain_key');
 		// LOAD SCRIPTS
-		wp_enqueue_script('print_app_class', print_app_CLIENT_JS);
-		wp_enqueue_script('print_app_woo_class', print_app_WP_CLIENT_JS);
-		// PREP VARS NEEDED FOR JAVASCRIPT
-		$pda_display_mode 			= get_post_meta($post->ID, 'print_app_display_mode', true );
-		$pda_customization_required = get_post_meta($post->ID, 'print_app_customization_required', true) == 'checked' ? 1 : 0;
-		$pda_pdf_download			= get_post_meta($post->ID, 'print_app_pdf_download', true) == 'checked' ? 1 : 0;
-		$pda_use_design_preview		= get_post_meta($post->ID, 'print_app_use_design_preview', true) == 'checked' ? 1 : 0;
+		// wp_enqueue_script('print_app_class', print_app_CLIENT_JS);
+		// wp_enqueue_script('print_app_woo_class', print_app_WP_CLIENT_JS);
+
+		// print_app_run/domain_key/produc_id/wp
+		$run_url = print_app_RUN_BASE_URL . '/' . $pda_domain_key . '/' . $post->ID . '/wp';
+		wp_enqueue_script('print_app_class', $run_url);
 		
-		$userData = "user: 'data pending...'";
-		$pda_now_value = 'now value pending...';
+		$userData = "";
 		
-		$projects		= $this->getProjectData($post->ID);
-		if (count($projects)) 
-			$projectData = json_decode($projects[$post->ID], true);
-		// var_dump($projectData);die();
-			
+		$projects = $this->getProjectData($post->ID);
+		if (count($projects)) $projectData = json_decode($projects[$post->ID], true);
+
 		$pda_project_id = isset($projectData) ? $projectData['projectId'] : '';
-		$pda_mode		= $pda_project_id ? 'edit-project':'new-project';
+		$pda_mode		= $pda_project_id ? 'edit-project' : 'new-project';
 		$pda_previews	= isset($projectData) ? json_encode($projectData['previews']) : '';
 		$pda_uid		= get_current_user_id() === 0 ? 'guest' : get_current_user_id();
-		$pda_domain_key = get_option('print_app_domain_key');
-		
-		wp_localize_script( 'print_app_woo_class', 'wp_ajax_url', admin_url( 'admin-ajax.php' ) );
-		wp_localize_script( 'print_app_woo_class', 'wp_ajax_url', admin_url( 'admin-ajax.php' ) );
-            
-		wc_enqueue_js("
-			window.paclient = new PrintAppWoo({
-				displayMode: '{$pda_display_mode}',
-				customizationRequired: ". $pda_customization_required.",
-				commandSelector: '#pa-buttons',
-				previewsSelector: '.woocommerce-product-gallery',
-				pdfDownload: ". $pda_pdf_download .",
-				useDesignPrevAsProdImage: " . $pda_use_design_preview. ",
-				userId: '{$pda_uid}',
-				langCode: '" . substr(get_bloginfo('language'), 0, 2) . "',
-				designId: '{$designId}',
-				previews: '{$pda_previews}',
-				mode: '{$pda_mode}',
-				createButtons: true,
-				projectId: '{$pda_project_id}',
-				pluginRoot: '" . site_url() . "/print_app',
-				domainKey: '" . $pda_domain_key . "',
-				client: 'wp',
-				product: {
-					id: '" . $post->ID . "',
-					name: '{$post->post_name}'
-				},{$userData},
-				ppValue: '{$pda_now_value}'
-			});
-		");
-		echo '<div id="pa-buttons" style="margin-right:10px"></div>';
+
+		wp_localize_script('print_app_class', 'printAppParams', array(
+			'wp_ajax_url' => admin_url( 'admin-ajax.php' ),
+			'langCode' => substr(get_bloginfo('language'), 0, 2),
+			'previews' => $pda_previews,
+			'mode' => $pda_mode,
+			'projectId' => $pda_project_id,
+			'pluginRoot' => site_url() . '/print_app',
+			'product' => array(
+				'id' => $post->ID,
+				'name' => $post->post_name
+			),
+			'userId' => $pda_uid,
+			'userData' => $userData,
+		));
+
+		echo '<div id="pa-buttons"></div>';
 	}
+
 	// SAVE PRODUCT POST META
 	public function print_app_save_post_meta ($post_id) {
 		update_post_meta($post_id, 'print_app_design', sanitize_text_field($_POST['print_app_design']));
@@ -314,71 +313,22 @@ class PrintApp {
 		update_post_meta($post_id, 'print_app_pdf_download', sanitize_text_field($_POST['print_app_pdf_download']));
 		update_post_meta($post_id, 'print_app_use_design_preview', sanitize_text_field($_POST['print_app_use_design_preview']));
 	}
+
 	// SHOW DESIGN SELECTION FORM
 	public function print_app_assign_design_form() {
-		echo '<div id="print_app_tab" class="panel woocommerce_options_panel">';
-		
-		if (!class_exists('WooCommerce')) exit;
-		global $post, $woocommerce;
+		global $post;
+		$pda_domain_key = get_option('print_app_domain_key');
 
-		
-		$pda_design 				= get_post_meta($post->ID, 'print_app_design', true);
-		$pda_display_mode			= get_post_meta($post->ID, 'print_app_display_mode', true);
-		$pda_customization_required = get_post_meta($post->ID, 'print_app_customization_required', true);
-		$pda_pdf_download			= get_post_meta($post->ID, 'print_app_pdf_download', true);
-		$pda_use_design_preview		= get_post_meta($post->ID, 'print_app_use_design_preview', true);
+		echo '<div id="print_app_tab" style="padding:1rem" class="panel woocommerce_options_panel hidden"></div>';
 
-		woocommerce_wp_select( array(
-			'id'            => 'print_app_design',
-			'value'			=> $pda_design,
-			'wrapper_class' => '',
-			'options'       => array('' => 'None', 'design_a9ffabf7-cd2c-4214-b758-7f7e6925e8b7' => 'Test Design'),
-			'label'         => 'Choose a Design',
-			'desc_tip'    	=> true,
-			'description' 	=> __("Visit the PrintApp Admin Panel to create and edit designs", 'PrintApp')
-		) );
-
-		woocommerce_wp_select( array(
-			'id'            => 'print_app_display_mode',
-			'value'		    => $pda_display_mode,
-			'label'         => 'Display Mode',
-			'options'       => array(''=>'Default', 'modal'=>'Full Window', 'inline'=>'Inline', 'mini'=>'Mini'),
-			'cbvalue'		=> 'unchecked',
-			'desc_tip'		=> true,
-			'description' 	=>  __("Define the way that PrintApp designer should open for this product on the front.")
-		) );
-		
-		woocommerce_wp_checkbox( array(
-			'id'            => 'print_app_customization_required',
-			'value'		    => $pda_customization_required,
-			'label'         => '',
-			'cbvalue'		=> 'checked',
-			'description' 	=> '&#8678; ' . __("Check this to make customization compulsory for this product", 'PrintApp')
-		) );
-		
-		woocommerce_wp_checkbox( array(
-			'id'            => 'print_app_pdf_download',
-			'value'		    => $pda_pdf_download,
-			'label'         => '',
-			'cbvalue'		=> 'checked',
-			'description' 	=> '&#8678; ' . __("Check this to allow PDF download for this product", 'PrintApp')
-		) );
-		
-		woocommerce_wp_checkbox( array(
-			'id'            => 'print_app_use_design_preview',
-			'value'		    => $pda_use_design_preview,
-			'label'         => '',
-			'cbvalue'		=> 'checked',
-			'description' 	=> '&#8678; ' . __("Check this to show the PrintApp design preview if this product has no product image", 'PrintApp')
-		) );
-		
-		wp_enqueue_script('print_app_design_tree', print_app_DESIGN_TREE_SELECT_JS);
-		wp_localize_script( 'print_app_design_tree', 'print_app_current_design', $pda_design );
-		wp_localize_script( 'print_app_design_tree', 'wp_ajax_url', admin_url( 'admin-ajax.php' ) );
-		
-		echo '</div>';
-
+		wp_enqueue_script('print_app_design_tree', print_app_DESIGN_SELECT_JS);
+		wp_localize_script('print_app_design_tree', 'pa_admin_values', array( 
+			'api_key' => $pda_domain_key,
+			'product_id' => $post->ID,
+			'product_title' => $post->post_title,
+		));
 	}
+
 	// ADD DESIGN SELECTION TAB
 	public function print_app_add_design_selection_tab($default_tabs) {
 		$default_tabs['print_app_tab'] = array(
@@ -389,6 +339,7 @@ class PrintApp {
 	    );
 	    return $default_tabs;
 	}
+
 	// PLUGIN LINKS AFTER DEACTIVATE/ACTIVATE
 	public function print_app_add_settings_link($links) {
 		$settings_link = array(
@@ -397,6 +348,7 @@ class PrintApp {
 		$actions = array_merge( $links, $settings_link );
 		return $actions;
 	}
+
 	// DISPLAY THE SETTINGS PAGE FOR THIS PLUGIN
 	public function print_app_admin_page() {
 		if (!class_exists('WooCommerce')) {
@@ -411,6 +363,7 @@ class PrintApp {
 			submit_button();
 		echo '</div></form>';
 	}
+
 	// STORE API KEY AND SECRET KEY
 	public function print_app_settings_api_init() {
 		add_settings_section('print_app_settings_section', 'PrintApp Settings', array($this, 'print_app_create_settings'), 'print_app');
@@ -421,22 +374,27 @@ class PrintApp {
 		register_setting('print_app', 'print_app_secret_key');
 		// register_setting('print_app', 'print_app_cat_customize');
 	}
+
 	// DISPLAY DOMAIN KEY INPUT
 	public function print_app_domain_key() {
 		echo  '<input class="regular-text" id="print_app_domain_key" name="print_app_domain_key" type="text" value="' . esc_html( get_option('print_app_domain_key') ) . '" />';
 	}
+
 	// DISPLAY SECRET KEY INPUT
 	public function print_app_secret_key() {
 		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . esc_html( get_option('print_app_secret_key') ) . '" />';
 	}
+
 	// DISPLAY SHOW ON CATEGORY SWITCH
 	public function print_app_cat_customize() {
 		echo '<input class="regular-text" id="print_app_cat_customize" name="print_app_cat_customize" type="checkbox" '. esc_html( ( get_option('print_app_cat_customize') == 'on' ? 'checked' : '' )  ) . ' />' ;
 	}
+
 	// DISPLAY MESSAGE: HOW TO GET NEW DOMAIN KEY
 	public function print_app_create_settings() {
 		echo '<p>' . __("You can generate your api and secret keys from the <a target=\"_blank\" href=\"https://admin.print.app/domains\">PrintApp domains page</a>", "PrintApp") . '</p>' ;
 	}
+
 	// ADD PLUGIN MENU TO ADMIN
 	public function print_app_actions() {
 		$menu_icon = plugin_dir_url( __FILE__ ) .'assets/icon.svg';
