@@ -3,7 +3,7 @@
  * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
  * Description: 		A Woocommerce module that allows your customers to personalize print products like business cads, photo prints, t-shirts, mugs, etc..
- * Version: 			1.0.2
+ * Version: 			1.1.0
  * Requires at least: 	3.8
  * Requires PHP:      	5.2.4
  * Author:            	36 Studios, Inc.
