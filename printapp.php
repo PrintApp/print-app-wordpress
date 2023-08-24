@@ -2,15 +2,15 @@
  /**
  * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
- * Description: 		A Woocommerce module that allows your customers to personalize print products like business cads, photo prints, t-shirts, mugs, etc..
- * Version: 			1.1.0
+ * Description: 		Empower your customers to personalize products like Business Cards, Photo Prints, T-Shirts, Mugs, Banners, Canvases, etc. on your store before purchase
+ * Version: 			1.2.0
  * Requires at least: 	3.8
  * Requires PHP:      	5.2.4
  * Author:            	36 Studios, Inc.
- * Author URI:        	https://36.studio
- * Tested up to: 6.1
+ * Author URI:        	https://print.app
+ * Tested up to: 6.3
  * WC requires at least: 3.0.0
- * WC tested up to: 5.6.0
+ * WC tested up to: 8.0.2
  *
  * @package PrintApp
  * @category Core
@@ -29,19 +29,16 @@ class PrintApp {
 	// DECLARE SOME CONSTANTS USED FOR THIS PLUGIN
 	private function define_constants() {
 		global $wpdb;
-		define('print_app_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 		define('print_app_TABLE_NAME', $wpdb->prefix . 'print_app_projects' );
-		define('print_app_CLIENT_JS', 'https://editor.print.app/js/client.js');
 		define('print_app_RUN_BASE_URL', 'https://run.print.app');
 		define('print_app_WP_CLIENT_JS', plugin_dir_url( __FILE__ ) . 'js/wp-client.js');
 		define('print_app_DESIGN_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/design-select.js');
 		define('print_app_SESSION_ID', 'print_app_sessId');
-		define('print_app_RUNTIME_API_URL', 'https://api.print.app/runtime');
 	}
 
 	// INITIALIZE HOOKS FOR THIS PLUGIN
 	public function init_hooks() {
-		// INITIALIZE ADMIN HOOKS
+
 		if ($this->request_type('frontend')) {
 			add_action('init', array($this,'register_session'), 0 );
 			add_action('woocommerce_before_add_to_cart_button', array($this, 'print_app_add_edit_button'));
@@ -52,10 +49,8 @@ class PrintApp {
 			add_action('wp_ajax_print_app_save_project', array($this, 'print_app_save_project'));
 			add_action('wp_ajax_nopriv_print_app_reset_project', array($this, 'print_app_reset_project'));
 			add_action('wp_ajax_print_app_reset_project', array($this, 'print_app_reset_project'));
-			add_action('wp_ajax_print_app_fetch_designs', array($this, 'print_app_fetch_designs'));
 		}
 		else if ($this->request_type('admin')) {
-			add_action('wp_ajax_print_app_fetch_designs', array($this, 'print_app_fetch_designs'));
 			add_action('admin_menu', array($this, 'print_app_actions'));
 			add_action('admin_init', array($this, 'print_app_settings_api_init'));
 			add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'print_app_add_settings_link'));
@@ -87,21 +82,27 @@ class PrintApp {
 	
 	// FORMAT THE META DATA ON ORDER TO DISPLAY DOWNLOAD LINKS
 	public function print_app_filter_wc_order_item_display_meta_value( $display_value, $meta ) {
-		if( $meta->key === '_pda_w2p_set_option' ) {
+		if ( $meta->key === '_pda_w2p_set_option' ) {
 			$pda_data = json_decode($display_value, true);
-			$display_value ='
+			
+			$auth_key = get_option('print_app_secret_key');
+			$hash = md5( $pda_data['projectId'] . $auth_key );
+			$post_fix = $pda_data['projectId'] . '!' . $hash;
+			
+			$display_value = '
 				<div class="print_app_order_meta">
-					<div onclick="pda_show_preview(this)" data-project-id="'.$pda_data["projectId"].'" class="pda_show_preview">
-						<img src="'.$pda_data['previews'][0]['url'].'&rand='.rand(100,100000).'" width="180px"/>
+					<div onclick="pda_show_preview(this)" data-project-id="' . $pda_data["projectId"] . '" class="pda_show_preview">
+						<img src="' . $pda_data['previews'][0]['url'] . '" width="180px"/>
 						<div>
 							<svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler icon-tabler-search" width="22px" height="22px" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-v-09078359="">   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>   <circle cx="10" cy="10" r="7"></circle>   <line x1="21" y1="21" x2="15" y2="15"></line> </svg>
 						</div>
 					</div>
 					<div>
-						<a href="https://pdf.print.app/'.$pda_data['projectId'].'">Download PDF</a><br/>
-						<a href="https://png.print.app/'.$pda_data['projectId'].'">Download PNG</a><br/>
-						<a href="https://jpg.print.app/'.$pda_data['projectId'].'">Download JPEG</a><br/>
-						<a href="https://admin.print.app/projects#'. $pda_data['projectId'].'">Modify Project</a>
+						<a target="_blank" href="https://pdf.print.app/'. $post_fix .'">Download PDF</a><br/>
+						<a target="_blank" href="https://png.print.app/'. $post_fix .'">Download PNG</a><br/>
+						<a target="_blank" href="https://jpg.print.app/'. $post_fix .'">Download JPEG</a><br/>
+						<a target="_blank" href="https://tiff.print.app/'. $post_fix .'">Download TIFF</a><br/>
+						<a target="_blank" href="https://admin.print.app/projects/'. $pda_data['projectId'] .'">Modify Project</a>
 					</div>
 				</div>';
 		}
@@ -110,7 +111,7 @@ class PrintApp {
 
 	// CHANGE THE META LABEL TO SOMETHING MORE HUMAN READABLE
 	public function print_app_filter_wc_order_item_display_meta_key( $display_key, $meta, $item ) {
-	    if( $meta->key === '_pda_w2p_set_option' ) 
+	    if ( $meta->key === '_pda_w2p_set_option' ) 
 	    	$display_key = "PrintApp";
 	    return $display_key;    
 	}
@@ -178,15 +179,7 @@ class PrintApp {
 		wp_die(json_encode(array('success'=>false)));
 	}
 
-	// FETCH DESIGNS FOR ASSIGNING IN BACKEND.
-	public function print_app_fetch_designs() {
-		$authKey = get_option('print_app_secret_key');
-		$url =  print_app_RUNTIME_API_URL.'/designs'.( isset($_POST['path']) ? '/'.$_POST['path']  : '' ) ;
-		$response = wp_remote_get( $url , array('headers'=>array('Authorization' => $authKey) ) );
-		wp_die( wp_remote_retrieve_body($response) ); 
-	}
-
-	//  A CUSTOM FUNCTION TO SANITIZE OUR PITCHPRINT VALUE OBJECT
+	//  A CUSTOM FUNCTION TO SANITIZE OUR PRINT.APP VALUE OBJECT
 	private function custom_sanitize_pp_object($object, $allowedKeys) {
 		$cleanItem = array();
 		foreach($object as $key => $value) {
@@ -196,7 +189,7 @@ class PrintApp {
 					foreach ($value as $prevKey => $prev)
 						if(is_array($prev)) {
 							$cleanItem[$key][$prevKey] = array();
-							$cleanItem[$key][$prevKey]['url'] = sanitize_url($prev['url']);//sanitize_url($url);
+							$cleanItem[$key][$prevKey]['url'] = sanitize_url($prev['url']);
 						}
 				}
 				elseif ($key == 'isAdmin')
@@ -262,23 +255,13 @@ class PrintApp {
 	// DISPLAY THE EDIT BUTTON
 	public function print_app_add_edit_button() {
 		global $post;
-		// global $woocommerce;
-		// CHECK IF DESIGN IS ASSIGNED TO THIS PRODUCT
-		// $designId = get_post_meta($post->ID, 'print_app_design', true );
-		// if (!$designId) return;
-		// $designId = explode('__', $designId);
-		// $designId = $designId[0];
 		$pda_domain_key = get_option('print_app_domain_key');
-		// LOAD SCRIPTS
-		// wp_enqueue_script('print_app_class', print_app_CLIENT_JS);
-		// wp_enqueue_script('print_app_woo_class', print_app_WP_CLIENT_JS);
 
-		// print_app_run/domain_key/produc_id/wp
+		// LOAD SCRIPTS
 		$run_url = print_app_RUN_BASE_URL . '/' . $pda_domain_key . '/' . $post->ID . '/wp';
 		wp_enqueue_script('print_app_class', $run_url);
 		
-		$userData = "";
-		
+		$userData = "";		
 		$projects = $this->getProjectData($post->ID);
 		if (count($projects)) $projectData = json_decode($projects[$post->ID], true);
 
@@ -342,11 +325,11 @@ class PrintApp {
 
 	// PLUGIN LINKS AFTER DEACTIVATE/ACTIVATE
 	public function print_app_add_settings_link($links) {
-		$settings_link = array(
-			'<a href="/wp-admin/admin.php?page=printapp" target="_blank" rel="noopener">Settings</a>',
-		);
-		$actions = array_merge( $links, $settings_link );
-		return $actions;
+		$url = add_query_arg('page', 'printapp', admin_url('admin.php'));
+		$settings_link = '<a href="' . esc_url($url) . '" rel="noopener">Settings</a>';
+		array_unshift($links, $settings_link);
+		
+		return $links;
 	}
 
 	// DISPLAY THE SETTINGS PAGE FOR THIS PLUGIN
@@ -369,10 +352,8 @@ class PrintApp {
 		add_settings_section('print_app_settings_section', 'PrintApp Settings', array($this, 'print_app_create_settings'), 'print_app');
 		add_settings_field('print_app_domain_key', 'Domain Key', array($this, 'print_app_domain_key'), 'print_app', 'print_app_settings_section', array());
 		add_settings_field('print_app_secret_key', 'Auth Key', array($this, 'print_app_secret_key'), 'print_app', 'print_app_settings_section', array());
-		// add_settings_field('print_app_cat_customize', 'Category Customization', array($this, 'print_app_cat_customize'), 'print_app', 'print_app_settings_section', array());
 		register_setting('print_app', 'print_app_domain_key');
 		register_setting('print_app', 'print_app_secret_key');
-		// register_setting('print_app', 'print_app_cat_customize');
 	}
 
 	// DISPLAY DOMAIN KEY INPUT
