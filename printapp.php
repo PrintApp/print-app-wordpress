@@ -3,7 +3,7 @@
  * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
  * Description: 		Empower your customers to personalize products like Business Cards, Photo Prints, T-Shirts, Mugs, Banners, Canvases, etc. on your store before purchase
- * Version: 			1.2.0
+ * Version: 			1.3.0
  * Requires at least: 	3.8
  * Requires PHP:      	5.2.4
  * Author:            	36 Studios, Inc.
@@ -246,7 +246,7 @@ class PrintApp {
 		$sql		= $wpdb->prepare("SELECT `value` FROM `$tableName` WHERE `product_id` = %d AND `id` = %s;", $product_id, $sessId);
 		
 		$results = $wpdb->get_results($sql);
-		if(count($results))
+		if (count($results))
 			$_projects[$product_id] = $results[0]->value;
 		
 		return $_projects;
@@ -258,8 +258,10 @@ class PrintApp {
 		$pda_domain_key = get_option('print_app_domain_key');
 
 		// LOAD SCRIPTS
-		$run_url = print_app_RUN_BASE_URL . '/' . $pda_domain_key . '/' . $post->ID . '/wp';
-		wp_enqueue_script('print_app_class', $run_url);
+		$lang_code = substr(get_bloginfo('language'), 0, 2);
+		if (!$lang_code) $lang_code = 'en';
+		$run_url = print_app_RUN_BASE_URL . '/' . $pda_domain_key . '/' . $post->ID . '/wp?lang=' . $lang_code;
+		wp_enqueue_script('print_app_class', $run_url, '', '', true);
 		
 		$userData = "";		
 		$projects = $this->getProjectData($post->ID);
