@@ -3,7 +3,7 @@
  * Plugin Name: 		Print.App
  * Plugin URI: 			https://print.app
  * Description: 		Empower your customers to personalize products like Business Cards, Photo Prints, T-Shirts, Mugs, Banners, Canvases, etc. on your store before purchase
- * Version: 			1.3.0
+ * Version: 			1.3.6
  * Requires at least: 	3.8
  * Requires PHP:      	5.2.4
  * Author:            	36 Studios, Inc.
@@ -31,13 +31,18 @@ class PrintApp {
 		global $wpdb;
 		define('print_app_TABLE_NAME', $wpdb->prefix . 'print_app_projects' );
 		define('print_app_RUN_BASE_URL', 'https://run.print.app');
-		define('print_app_WP_CLIENT_JS', plugin_dir_url( __FILE__ ) . 'js/wp-client.js');
 		define('print_app_DESIGN_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/design-select.js');
 		define('print_app_SESSION_ID', 'print_app_sessId');
 	}
 
 	// INITIALIZE HOOKS FOR THIS PLUGIN
 	public function init_hooks() {
+		
+		add_action( 'before_woocommerce_init', function() {
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+			}
+		} );
 
 		if ($this->request_type('frontend')) {
 			add_action('init', array($this,'register_session'), 0 );
@@ -57,17 +62,10 @@ class PrintApp {
 			add_filter('woocommerce_order_item_get_formatted_meta_data', array($this, 'print_app_remove_preview_line_item_from_meta'), 10, 2);
 			add_filter('woocommerce_product_data_tabs', array($this, 'print_app_add_design_selection_tab'), 10, 1 );
 			add_action('woocommerce_product_data_panels', array($this,'print_app_assign_design_form') );
-			add_action('woocommerce_process_product_meta', array($this,'print_app_save_post_meta') );
 			add_filter('woocommerce_order_item_display_meta_key', array($this,'print_app_filter_wc_order_item_display_meta_key'), 20, 3 );
 			add_filter('woocommerce_order_item_display_meta_value', array($this,'print_app_filter_wc_order_item_display_meta_value'), 20, 3 );
-			add_action('admin_head', array($this, 'print_app_styling') );
 		}
 		
-	}
-	
-
-	public function print_app_styling() {
-		wp_enqueue_style( 'print_app_admin_styling', plugin_dir_url( __FILE__ ) .'css/admin.css' );
 	}
 
 	// REMOVE PREVIEW ON LINE META ITEMS IN ORDER DETAILS ON ADMIN
@@ -86,25 +84,30 @@ class PrintApp {
 			$pda_data = json_decode($display_value, true);
 			
 			$auth_key = get_option('print_app_secret_key');
-			$hash = md5( $pda_data['projectId'] . $auth_key );
-			$post_fix = $pda_data['projectId'] . '!' . $hash;
-			
-			$display_value = '
-				<div class="print_app_order_meta">
-					<div onclick="pda_show_preview(this)" data-project-id="' . $pda_data["projectId"] . '" class="pda_show_preview">
-						<img src="' . $pda_data['previews'][0]['url'] . '" width="180px"/>
-						<div>
-							<svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler icon-tabler-search" width="22px" height="22px" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-v-09078359="">   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>   <circle cx="10" cy="10" r="7"></circle>   <line x1="21" y1="21" x2="15" y2="15"></line> </svg>
+
+			if (!empty($pda_data['projectId'])) {
+				$hash = md5( $pda_data['projectId'] . $auth_key );
+				$post_fix = $pda_data['projectId'] . '!' . $hash;
+
+				return '
+					<div class="print_app_order_meta" style="display: flex;">
+						<div onclick="pda_show_preview(this)" data-project-id="' . $pda_data["projectId"] . '" class="pda_show_preview" style="margin-right: 10px;">
+							<img src="' . $pda_data['previews'][0]['url'] . '" width="180px"/>
+							<div>
+								<svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler icon-tabler-search" width="22px" height="22px" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-v-09078359="">   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>   <circle cx="10" cy="10" r="7"></circle>   <line x1="21" y1="21" x2="15" y2="15"></line> </svg>
+							</div>
 						</div>
-					</div>
-					<div>
-						<a target="_blank" href="https://pdf.print.app/'. $post_fix .'">Download PDF</a><br/>
-						<a target="_blank" href="https://png.print.app/'. $post_fix .'">Download PNG</a><br/>
-						<a target="_blank" href="https://jpg.print.app/'. $post_fix .'">Download JPEG</a><br/>
-						<a target="_blank" href="https://tiff.print.app/'. $post_fix .'">Download TIFF</a><br/>
-						<a target="_blank" href="https://admin.print.app/projects/'. $pda_data['projectId'] .'">Modify Project</a>
-					</div>
-				</div>';
+						<div>
+							<a target="_blank" href="https://pdf.print.app/'. $post_fix .'">Download PDF</a><br/>
+							<a target="_blank" href="https://png.print.app/'. $post_fix .'">Download PNG</a><br/>
+							<a target="_blank" href="https://jpg.print.app/'. $post_fix .'">Download JPEG</a><br/>
+							<a target="_blank" href="https://tiff.print.app/'. $post_fix .'">Download TIFF</a><br/>
+							<a target="_blank" href="https://admin.print.app/projects/'. $pda_data['projectId'] .'">Modify Project</a>
+						</div>
+					</div>';
+			} else if (!empty($pda_data['form'])) {
+				print_r($pda_data);
+			}
 		}
 		return $display_value;  
 	}
@@ -118,8 +121,8 @@ class PrintApp {
 
 	// ADD PROJECT DATA AS META DATA ON ORDER ITEMS
 	public function print_app_add_order_item_meta($order_item, $cart_item_key) {
-		// var_dump($order_item);die();
 		$cart_item = WC()->cart->get_cart_item( $cart_item_key );
+
 		if	( !empty($cart_item['_pda_w2p_set_option']) ) {
 			$order_item->add_meta_data( '_pda_w2p_set_option', $cart_item['_pda_w2p_set_option'], true );
 			$order_item->add_meta_data( 'Preview', '<img class="pa-preview-image" style="width:120px;margin-left;10px" src="'.json_decode($cart_item['_pda_w2p_set_option'],true)['previews'][0]['url'].'">', true );
@@ -141,11 +144,9 @@ class PrintApp {
 	// ADD PROJECT DATA AS META TO CART ITEMS
 	public function print_app_add_cart_item_data($cart_item_meta, $product_id) {
 		$_projects = $this->getProjectData($product_id);
-		if (isset($_projects)) {
-			if (isset($_projects[$product_id])) {
-				$cart_item_meta['_pda_w2p_set_option'] = $_projects[$product_id];
-				$this->clearProjects($product_id);
-			}
+		if (isset($_projects) && isset($_projects[$product_id])) {
+			$cart_item_meta['_pda_w2p_set_option'] = $_projects[$product_id];
+			$this->clearProjects($product_id);
 		}
 		return $cart_item_meta;
 	}
@@ -160,7 +161,6 @@ class PrintApp {
 
 	// CREATE UNIQUE SESSION ID FOR EACH CUSTOMER
 	public function register_session() {
-		// die('init');
 		if(!isset($_COOKIE['print_app_sessId']))
 			setcookie('print_app_sessId', uniqid('pda_w2p_', true), time()+60*60*24*30, '/');
 	}
@@ -206,7 +206,6 @@ class PrintApp {
 		global $wpdb;
 		if (!isset($_POST ['value'])) return;
 		$value		= json_decode(stripslashes(html_entity_decode($_POST['value'])), true);
-		$value		= $this->custom_sanitize_pp_object($value, array('mode','projectId','isAdmin','sourceDesignId','previews'));
 		if (!$value) return wp_die(json_encode(array('success'=>false)));
 		$productId	= sanitize_text_field($_POST['product_id']);
 		if (isset($_COOKIE['print_app_sessId'])) {
@@ -263,13 +262,47 @@ class PrintApp {
 		$run_url = print_app_RUN_BASE_URL . '/' . $pda_domain_key . '/' . $post->ID . '/wp?lang=' . $lang_code;
 		wp_enqueue_script('print_app_class', $run_url, '', '', true);
 		
-		$userData = "";		
+		$userData = "";
+		if ( is_user_logged_in() ) {
+			$current_user = wp_get_current_user();
+			$customer = WC()->customer;
+		
+			$fname = esc_js($customer->get_billing_first_name());
+			$lname = esc_js($customer->get_billing_last_name());
+		
+			$address = $customer->get_billing_address_1() . "<br>";
+			if ( !empty($customer->get_billing_address_2()) ) {
+				$address .= $customer->get_billing_address_2() . "<br>";
+			}
+			$address .= $customer->get_billing_city() . " " . $customer->get_billing_postcode() . "<br>";
+			if ( !empty($customer->get_billing_state()) ) {
+				$address .= $customer->get_billing_state() . "<br>";
+			}
+			$address .= $customer->get_billing_country();
+			$address = esc_js($address);
+		
+			$userData = "{
+					email: '" . esc_js($current_user->user_email) . "',
+					name: '{$fname} {$lname}',
+					firstname: '{$fname}',
+					lastname: '{$lname}',
+					phone: '" . esc_js($customer->get_billing_phone()) . "',
+					address: '{$address}'.split('<br>').join('\\n')
+				}";
+		}
+
 		$projects = $this->getProjectData($post->ID);
 		if (count($projects)) $projectData = json_decode($projects[$post->ID], true);
 
-		$pda_project_id = isset($projectData) ? $projectData['projectId'] : '';
-		$pda_mode		= $pda_project_id ? 'edit-project' : 'new-project';
-		$pda_previews	= isset($projectData) ? json_encode($projectData['previews']) : '';
+		$pda_project_id = '';
+		$pda_mode		= 'new-project';
+		$pda_previews	= '';
+		if (isset($projectData)) {
+			$pda_project_id = $projectData['projectId'];
+			$pda_mode		= isset($projectData['mode']) ? $projectData['mode'] : 'edit-project';
+			$pda_previews	= isset($projectData['previews']) ? json_encode($projectData['previews']) : '';
+		}
+		
 		$pda_uid		= get_current_user_id() === 0 ? 'guest' : get_current_user_id();
 
 		wp_localize_script('print_app_class', 'printAppParams', array(
@@ -284,19 +317,10 @@ class PrintApp {
 				'name' => $post->post_name
 			),
 			'userId' => $pda_uid,
-			'userData' => $userData,
+			'launchData' => $userData,
 		));
 
 		echo '<div id="pa-buttons"></div>';
-	}
-
-	// SAVE PRODUCT POST META
-	public function print_app_save_post_meta ($post_id) {
-		update_post_meta($post_id, 'print_app_design', sanitize_text_field($_POST['print_app_design']));
-		update_post_meta($post_id, 'print_app_display_mode', sanitize_text_field($_POST['print_app_display_mode']));
-		update_post_meta($post_id, 'print_app_customization_required', sanitize_text_field($_POST['print_app_customization_required']));
-		update_post_meta($post_id, 'print_app_pdf_download', sanitize_text_field($_POST['print_app_pdf_download']));
-		update_post_meta($post_id, 'print_app_use_design_preview', sanitize_text_field($_POST['print_app_use_design_preview']));
 	}
 
 	// SHOW DESIGN SELECTION FORM
