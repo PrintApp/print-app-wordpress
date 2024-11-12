@@ -1,5 +1,6 @@
 # Print.App
 
+## Version 2.0.0 plugin
 PrintApp is a platform that allows your customers to personalize their Print orders on any web store.
 It provides customers, an easy to use WYSIWYG (What you see is what you get) "Do It Yourself" interface for creating artworks for Print.
 
