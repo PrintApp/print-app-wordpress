@@ -2,8 +2,8 @@
 Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
-Tested up to: 6.3
-Stable tag: 1.3.6
+Tested up to: 6.6
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Please learn more about this service from our site: [Print.App](https://print.ap
 * WordPress 3.8 or greater
 * PHP version 5.2.4 or greater
 * MySQL version 5.0 or greater
-* WooCommerce 3.0.*
+* WooCommerce 4.0.*
 
 This plugin requires you to have WooCommerce installed.
 You can download [WooCommerce here:](http://www.woothemes.com/woocommerce) or install via the plugins section of your WordPress installation.
@@ -100,6 +100,11 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.0.0 =
+Major re-write of the plugin.
+Utilizing Sessions for customization storage as against Database which requires too frequent maintenance
+Standardized the actions and filters into separate Folders
 
 = 1.3.6 =
 WooCommerce High Performance Order Storage compatibility

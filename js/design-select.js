@@ -15,7 +15,7 @@
                         reject(request.responseText);
                 }
             };
-            request.open('GET', `https://run.print.app/${pa_admin_values.api_key}/${pa_admin_values.product_id}/wp/admin`);
+            request.open('GET', `https://run.print.app/${pa_admin_values.domain_key}/${pa_admin_values.product_id}/wp/admin`);
             request.send();
         });
     },
