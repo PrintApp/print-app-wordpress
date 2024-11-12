@@ -8,10 +8,12 @@
 
 	function settings_api_init() {
 		add_settings_section('print_app_settings_section', 'PrintApp Settings', 'printapp\\functions\\admin\\print_app_create_settings', 'print_app');
-		add_settings_field('print_app_domain_key', 'Domain Key', 'printapp\\functions\\admin\\print_app_domain_key', 'print_app', 'print_app_settings_section', array());
-		add_settings_field('print_app_secret_key', 'Auth Key', 'printapp\\functions\\admin\\print_app_secret_key', 'print_app', 'print_app_settings_section', array());
+		add_settings_field('print_app_domain_key', 'Domain Key:', 'printapp\\functions\\admin\\print_app_domain_key', 'print_app', 'print_app_settings_section', array());
+		add_settings_field('print_app_secret_key', 'Auth Key:', 'printapp\\functions\\admin\\print_app_secret_key', 'print_app', 'print_app_settings_section', array());
+		add_settings_field('print_app_cust_download_link', 'Include PDF Link in Customer Email:', 'printapp\\functions\\admin\\print_app_cust_download_link', 'print_app', 'print_app_settings_section', array());
 		register_setting('print_app', 'print_app_domain_key');
 		register_setting('print_app', 'print_app_secret_key');
+		register_setting('print_app', 'print_app_cust_download_link');
 	}
 
 	// input for capturing the PrintApp Domain Key
@@ -22,6 +24,10 @@
 	// input for capturing the PrintApp Auth Key
 	function print_app_secret_key() {
 		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . esc_html( get_option('print_app_secret_key') ) . '" />';
+	}
+
+	function print_app_cust_download_link() {
+		echo '<input class="regular-text" id="print_app_cust_download_link" name="print_app_cust_download_link" type="checkbox" '. ( get_option('print_app_cust_download_link') == 'on' ? 'checked' : '' ) . ' />';
 	}
 
 	// creates the PrintApp settings link in admin
