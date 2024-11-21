@@ -1,0 +1,4 @@
+== 2.0.0 =
+Major re-write of the plugin.
+Utilizing Sessions for customization storage as against Database which requires too frequent maintenance
+Standardized the actions and filters into separate Folders
