@@ -15,16 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-  
-      - name: Update files with new version and changes from changelog
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          VERSION="$(echo $TAG | cut -c2-)"
-          CHANGELOG=$(cat CHANGELOG.txt)
-          sed -i "s/Version.*/Version: $VERSION/" printapp.php
-          sed -i "s/Stable tag:.*/Stable tag: $VERSION/" readme.txt
-          sed -i "s/== Changelog ==.*/== Changelog ==\n\n== $VERSION =\n$CHANGELOG/" readme.txt
           
       - name: Merge and release latest changes into the SVN repo
         env:
