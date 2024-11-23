@@ -25,7 +25,7 @@ jobs:
           cd ..
           mkdir pp-wp-svn
           svn co https://plugins.svn.wordpress.org/printapp pp-wp-svn
-          cp print-app-wordpress/* pp-wp-svn/trunk/ -r
+          cp -r print-app-wordpress/. pp-wp-svn/trunk/
           cd pp-wp-svn
           VERSION="$(echo $TAG | cut -c2-)"
           svn cp trunk/ tags/$VERSION

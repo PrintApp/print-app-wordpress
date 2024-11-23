@@ -1,3 +1,6 @@
+== 2.0.1 =
+Minor update to release.yml to copy functions folder
+
 == 2.0.0 =
 Major re-write of the plugin.
 Utilizing Sessions for customization storage as against Database which requires too frequent maintenance
