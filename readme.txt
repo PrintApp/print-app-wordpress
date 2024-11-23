@@ -101,6 +101,9 @@ Check out our [website for more details](https://print.app)
 
 == Changelog ==
 
+= 2.0.2 =
+Minor update to release.yml to copy functions folder
+
 = 2.0.1 =
 Minor update to release.yml to copy functions folder
 
