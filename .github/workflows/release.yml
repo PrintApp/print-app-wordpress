@@ -29,7 +29,9 @@ jobs:
           ls -R pp-wp-svn/trunk/
           cd pp-wp-svn
           VERSION="$(echo $TAG | cut -c2-)"
+          svn add trunk/* --force
           svn cp trunk/ tags/$VERSION
+          svn add tags/$VERSION/* --force
           svn ci -m "$COMMIT_MSG" --username printapp --password $SVN_SECRET
       
       - name: Commit the version updates
