@@ -2,6 +2,8 @@
 
 	namespace printapp\functions\front;
 
+	use printapp\functions\general as General;
+
 	function customize_button() {
 		global $post;
 		$printapp_domain_key = get_option('print_app_domain_key');
@@ -15,13 +17,8 @@
 		// get user data
 		$user_data = get_user_data();
 
-		if (!session_id()) session_start();
-
 		// get project data
-		if (session_id()) {
-			$session_key = PRINT_APP_SESSION_PREFIX . $post->ID;
-			if (isset($_SESSION[$session_key])) $project_data = $_SESSION[$session_key];
-		}
+		$project_data = General\get_customization_data($post->ID);
 
 		// initialize the data to pass to print_app_class
 		$pa_project_id 	= '';
@@ -29,7 +26,7 @@
 		$pa_mode		= 'new-project';
 		$pa_user_id		= (get_current_user_id() === 0) ? 'guest' : get_current_user_id();
 
-		if (isset($project_data)) {
+		if (isset($project_data) && $project_data !== FALSE) {
 			$pa_project_id = $project_data['projectId'];
 			$pa_mode		= isset($project_data['mode']) ? $project_data['mode'] : 'edit-project';
 			$pa_previews	= isset($project_data['previews']) ? json_encode($project_data['previews']) : '';
@@ -54,7 +51,7 @@
 	}
 
 	function get_user_data() {
-		if (!is_user_logged_in()) return 'null';
+		if (!is_user_logged_in()) return '';
 
 		$customer = WC()->customer;
 		$current_user = wp_get_current_user();

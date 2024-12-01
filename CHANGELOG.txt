@@ -1,3 +1,7 @@
+= 2.1.0 =
+Switched from using Sessions to using Wordpress Transients for saving customization details.
+Sessions are prone to conflicts with other plugins and systems.
+
 == 2.0.3 =
 Minor update to release.yml to copy functions folder
 

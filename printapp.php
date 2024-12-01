@@ -3,7 +3,7 @@
  * 	Plugin Name: 		Print.App
  * 	Plugin URI: 		https://print.app
  * 	Description: 		Empower your customers to personalize products like Business Cards, Photo Prints, T-Shirts, Mugs, Banners, Canvases, etc. on your store before purchase
- * 	Version: 			2.0.3
+ * 	Version: 			2.1.0
  * 	Requires at least: 	3.8
  * 	Requires PHP:      	5.2.4
  * 	Author:            	36 Studios, Inc.
@@ -45,7 +45,7 @@
 			 * 	PrintApp version.
 			 * 	@var string
 			*/
-			public $version = '2.0.3';
+			public $version = '2.1.0';
 
 			/**
 			 * 	The single instance of the class.
@@ -113,9 +113,9 @@
 				define('PRINT_APP_PLUGIN_BASENAME', plugin_basename(__FILE__));
 				define('PRINT_APP_RUN_BASE_URL', 'https://run.print.app/');
 				define('PRINT_APP_DESIGN_SELECT_JS', plugin_dir_url( __FILE__ ) . 'js/design-select.js');
-				define('PRINT_APP_SESSION_PREFIX', 'print_app_sess_');
 				define('PRINT_APP_CUSTOMIZATION_KEY', 'print_app_customization');
 				define('PRINT_APP_CUSTOMIZATION_PREVIEWS_KEY', 'preview');
+				define('PRINT_APP_CUSTOMIZATION_DURATION', MONTH_IN_SECONDS);
 			}
 			
 		}

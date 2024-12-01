@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.6
-Stable tag: 2.0.3
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,10 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.1.0 =
+Switched from using Sessions to using Wordpress Transients for saving customization details.
+Sessions are prone to conflicts with other plugins and systems.
 
 = 2.0.3 =
 Minor update to release.yml to copy functions folder
