@@ -2,6 +2,13 @@
 
     namespace printapp\functions\general;
 
+    function set_cookie() {
+        if (!isset($_COOKIE[PRINT_APP_CUSTOMIZATION_KEY])) {
+            $token = bin2hex(random_bytes(16));
+            setcookie(PRINT_APP_CUSTOMIZATION_KEY, $token, time() + PRINT_APP_CUSTOMIZATION_DURATION, '/');
+        }
+    }
+
     function get_user_token() {
         if (isset($_COOKIE[PRINT_APP_CUSTOMIZATION_KEY]))
             return $_COOKIE[PRINT_APP_CUSTOMIZATION_KEY];

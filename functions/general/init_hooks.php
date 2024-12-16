@@ -44,6 +44,8 @@
             add_filter('woocommerce_checkout_create_order_line_item', 'printapp\\functions\\front\\add_order_item_meta', 70, 2);
             
         }
+
+        add_action('init', 'printapp\\functions\\general\\set_cookie');
         
         // save project for both authenticated and guest users
         add_action('wp_ajax_nopriv_print_app_save_project', 'printapp\\functions\\front\\save_project_sess');
