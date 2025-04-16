@@ -17,13 +17,17 @@
 	}
 
 	// input for capturing the PrintApp Domain Key
+	// Escape output for better security
 	function print_app_domain_key() {
-		echo  '<input class="regular-text" id="print_app_domain_key" name="print_app_domain_key" type="text" value="' . esc_html( get_option('print_app_domain_key') ) . '" />';
+		$domain_key = esc_html(get_option('print_app_domain_key'));
+		echo '<input class="regular-text" id="print_app_domain_key" name="print_app_domain_key" type="text" value="' . $domain_key . '" />';
 	}
 
 	// input for capturing the PrintApp Auth Key
+	// Escape output for better security
 	function print_app_secret_key() {
-		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . esc_html( get_option('print_app_secret_key') ) . '" />';
+		$secret_key = esc_html(get_option('print_app_secret_key'));
+		echo '<input class="regular-text" id="print_app_secret_key" name="print_app_secret_key" type="text" value="' . $secret_key . '" />';
 	}
 
 	function print_app_cust_download_link() {
