@@ -53,6 +53,52 @@
 		return $formatted_meta;
 	}
 
+	function handle_new_order( $order_id, $order ) {
+		$items = $order->get_items();
+		$should_update_user_data = false;
+		$project_ids = [];
+		
+		$user_data = [
+            'id' => $order->get_user_id(),
+            'first_name' => $order->get_billing_first_name(),
+            'last_name' => $order->get_billing_last_name(),
+            'email' => $order->get_billing_email(),
+			'info' => 'Order Id: ' . $order_id,
+        ];
+
+		foreach ( $items as $item ) {
+			foreach ( $item->get_meta_data() as $item_meta ) {
+				if ( $item_meta->key === PRINT_APP_CUSTOMIZATION_KEY ) {
+					$print_app_customization = $item_meta->value;
+
+					if ( !empty($print_app_customization['projectId']) ) {
+						if ( $user_data && (!isset($print_app_customization['userId']) || empty($print_app_customization['userId']) || $print_app_customization['userId'] === 'guest') ) {
+							$should_update_user_data = true;
+						}
+						$project_ids[] = $print_app_customization['projectId'];
+					}
+				}
+			}
+		}
+
+		if ( count($project_ids) && $should_update_user_data) {
+			$auth_key = 'Bearer ' . get_option('print_app_secret_key');
+
+			$response = wp_remote_post(PRINT_APP_UPDATE_USER_ENDPOINT, [
+				'headers' => [ 'Authorization' => $auth_key ],
+				'body'    => json_encode([
+					'projectIds' => $project_ids,
+					'user'     => $user_data,
+				]),
+				'method'  => 'POST',
+			]);
+
+			if ( is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 ) {
+				error_log( '[PRINTAPP] Failed to append user ID to projects: ' . print_r($response, true) );
+			}
+		}
+	}
+
 	// this is for backward compatibility v1, to display old orders pre-installing this version
 	function print_app_filter_wc_order_item_display_meta_value( $display_value, $meta ) {
 		if ( $meta->key === '_pda_w2p_set_option' ) {

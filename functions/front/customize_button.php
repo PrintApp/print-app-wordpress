@@ -44,6 +44,7 @@
 							),
 			'userId' 		=> $pa_user_id,
 			'launchData' 	=> $user_data,
+			'cookieKey' 	=> PRINT_APP_CUSTOMIZATION_KEY,
 			'wp_ajax_url' 	=> admin_url('admin-ajax.php'),
 		));
 

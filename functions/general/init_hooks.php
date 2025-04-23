@@ -45,13 +45,13 @@
             
         }
 
-        add_action('init', 'printapp\\functions\\general\\set_cookie');
-        
         // save project for both authenticated and guest users
         add_action('wp_ajax_nopriv_print_app_save_project', 'printapp\\functions\\front\\save_project_sess');
         add_action('wp_ajax_print_app_save_project', 'printapp\\functions\\front\\save_project_sess');
         add_action('wp_ajax_nopriv_print_app_reset_project', 'printapp\\functions\\front\\reset_project_sess');
         add_action('wp_ajax_print_app_reset_project', 'printapp\\functions\\front\\reset_project_sess');
+
+        add_action('woocommerce_new_order', 'printapp\\functions\\admin\\handle_new_order',10,2);
 
         // add the customization info to the order email
         add_action('woocommerce_email_order_details', 'printapp\\functions\\general\\order_email', 10, 4);
