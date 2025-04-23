@@ -55,7 +55,6 @@
 
 	function handle_new_order( $order_id, $order ) {
 		$items = $order->get_items();
-		$should_update_user_data = false;
 		$project_ids = [];
 		
 		$user_data = [
@@ -72,16 +71,13 @@
 					$print_app_customization = $item_meta->value;
 
 					if ( !empty($print_app_customization['projectId']) ) {
-						if ( $user_data && (!isset($print_app_customization['userId']) || empty($print_app_customization['userId']) || $print_app_customization['userId'] === 'guest') ) {
-							$should_update_user_data = true;
-						}
 						$project_ids[] = $print_app_customization['projectId'];
 					}
 				}
 			}
 		}
 
-		if ( count($project_ids) && $should_update_user_data) {
+		if ( count($project_ids) ) {
 			$auth_key = 'Bearer ' . get_option('print_app_secret_key');
 
 			$response = wp_remote_post(PRINT_APP_UPDATE_USER_ENDPOINT, [
