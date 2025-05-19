@@ -36,7 +36,7 @@
         $transient_result = set_transient($key, $customization_data, PRINT_APP_CUSTOMIZATION_KEY);
 
         // Also save to session as a backup
-        if (session_status() === PHP_SESSION_NONE) {
+        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         $_SESSION[$key] = $customization_data;
@@ -60,7 +60,7 @@
         }
 
         // If transient failed or expired, try getting from session
-        if (session_status() === PHP_SESSION_NONE) {
+        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
@@ -83,7 +83,7 @@
         delete_transient($key);
 
         // Delete from session
-        if (session_status() === PHP_SESSION_NONE) {
+        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         if (isset($_SESSION[$key])) {

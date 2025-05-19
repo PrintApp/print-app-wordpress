@@ -3,12 +3,12 @@
  * 	Plugin Name: 		Print.App
  * 	Plugin URI: 		https://print.app
  * 	Description: 		Empower your customers to personalize products like Business Cards, Photo Prints, T-Shirts, Mugs, Banners, Canvases, etc. on your store before purchase
- * 	Version: 			2.1.4
+ * 	Version: 			2.1.5
  * 	Requires at least: 	3.8
- * 	Requires PHP:      	5.2.4
+ * 	Requires PHP:      	7.4
  * 	Author:            	Print.App ApS
  * 	Author URI:        	https://print.app
- * 	Tested up to: 		6.7
+ * 	Tested up to: 		6.8
  * 	WC requires at least: 	4.0
  * 	WC tested up to: 		9.4
  * 	
@@ -45,7 +45,7 @@
 			 * 	PrintApp version.
 			 * 	@var string
 			*/
-			public $version = '2.1.4';
+			public $version = '2.1.5';
 
 			/**
 			 * 	The single instance of the class.
