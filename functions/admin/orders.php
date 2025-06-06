@@ -10,6 +10,10 @@
 	}
 
 	function format_print_app_order_value($formatted_meta, $order_item) {
+		// Check if the current request is for an email
+		if (did_action('woocommerce_email_order_details')) {
+			return $formatted_meta;
+		}
 
 		foreach ($formatted_meta as $meta) {
 			if ($meta->key === PRINT_APP_CUSTOMIZATION_PREVIEWS_KEY) {
