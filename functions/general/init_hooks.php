@@ -42,6 +42,9 @@
 
             // add the customization data to the order item
             add_filter('woocommerce_checkout_create_order_line_item', 'printapp\\functions\\front\\add_order_item_meta', 70, 2);
+
+            // my recent order page..
+            add_action('woocommerce_before_my_account', 'printapp\\functions\\front\\my_recent_order');
             
         }
 
@@ -51,7 +54,7 @@
         add_action('wp_ajax_nopriv_print_app_reset_project', 'printapp\\functions\\front\\reset_project_sess');
         add_action('wp_ajax_print_app_reset_project', 'printapp\\functions\\front\\reset_project_sess');
 
-        add_action('woocommerce_new_order', 'printapp\\functions\\admin\\handle_new_order',10,2);
+        add_action('woocommerce_new_order', 'printapp\\functions\\admin\\handle_new_order', 10, 2);
 
         // add the customization info to the order email
         add_action('woocommerce_email_order_details', 'printapp\\functions\\general\\order_email', 10, 4);

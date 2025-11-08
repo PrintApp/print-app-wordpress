@@ -17,7 +17,7 @@
 
 	function admin_page() {
 		if (!class_exists('WooCommerce')) {
-			echo ('<h3>This plugin depends on WooCommerce plugin. Kindly install <a target="_blank" href="https://wordpress.org/plugins/woocommerce/">WooCommerce here!</a></h3>');
+			echo ('<h3>This plugin requires the WooCommerce plugin. Kindly install <a target="_blank" href="https://wordpress.org/plugins/woocommerce/">WooCommerce here!</a></h3>');
 			exit();
 		}
 		settings_errors();

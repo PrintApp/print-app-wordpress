@@ -5,6 +5,11 @@
 	use printapp\functions\general as General;
 
 	function customize_button() {
+		// Guard against duplicate execution
+		static $already_run = false;
+		if ($already_run) return;
+		$already_run = true;
+		
 		global $post;
 		$printapp_domain_key = get_option('print_app_domain_key');
 

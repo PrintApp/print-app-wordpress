@@ -101,6 +101,11 @@ Check out our [website for more details](https://print.app)
 
 == Changelog ==
 
+= 2.2.0 =
+Implemented Save for Later
+Limited preview images in emails to the first 3 pages
+Minor bug fixes related to session management
+
 = 2.1.6 =
 Minor fix for displaying links in emails
 

@@ -7,10 +7,34 @@
 	}
 
 	function settings_api_init() {
-		add_settings_section('print_app_settings_section', 'PrintApp Settings', 'printapp\\functions\\admin\\print_app_create_settings', 'print_app');
-		add_settings_field('print_app_domain_key', 'Domain Key:', 'printapp\\functions\\admin\\print_app_domain_key', 'print_app', 'print_app_settings_section', array());
-		add_settings_field('print_app_secret_key', 'Auth Key:', 'printapp\\functions\\admin\\print_app_secret_key', 'print_app', 'print_app_settings_section', array());
-		add_settings_field('print_app_cust_download_link', 'Include PDF Link in Customer Email:', 'printapp\\functions\\admin\\print_app_cust_download_link', 'print_app', 'print_app_settings_section', array());
+		add_settings_section(
+			'print_app_settings_section',
+			__('PrintApp Settings', 'printapp'),
+			'printapp\\functions\\admin\\print_app_create_settings',
+			'print_app'
+		);
+		add_settings_field(
+			'print_app_domain_key',
+			__('Domain Key:', 'printapp'),
+			'printapp\\functions\\admin\\print_app_domain_key',
+			'print_app',
+			'print_app_settings_section'
+		);
+		add_settings_field(
+			'print_app_secret_key',
+			__('Auth Key:', 'printapp'),
+			'printapp\\functions\\admin\\print_app_secret_key',
+			'print_app',
+			'print_app_settings_section'
+		);
+		add_settings_field(
+			'print_app_cust_download_link',
+			__('Include PDF Link in Customer Email:', 'printapp'),
+			'printapp\\functions\\admin\\print_app_cust_download_link',
+			'print_app',
+			'print_app_settings_section'
+		);
+
 		register_setting('print_app', 'print_app_domain_key');
 		register_setting('print_app', 'print_app_secret_key');
 		register_setting('print_app', 'print_app_cust_download_link');
