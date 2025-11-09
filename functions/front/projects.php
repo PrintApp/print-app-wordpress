@@ -20,8 +20,11 @@
 
         $product_id = absint($_POST['product_id']); // Sanitize product_id
         $result = General\save_customization_data($product_id, $value);
-        if ($result !== FALSE)
-            return wp_send_json_success('Customization data saved successfully: ' . $result);
+        
+        if ($result !== FALSE) {
+            $product_url = get_permalink($product_id);
+            return wp_send_json_success(['success' => true, 'productUrl' => $product_url]);
+        }
 
         wp_send_json_error('Failed to save customization data');
     }
