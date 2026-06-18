@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.8
-Stable tag: 2.2.3
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,11 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.3.0 =
+Fixed cross-customer mix-up where one customer's artwork could be added to another customer's cart
+Customization data is now stored in the WooCommerce customer session instead of a transient keyed by a self-managed cookie token
+Removed the self-managed token cookie and native PHP $_SESSION backup, which could leak across customers on sites with full-page caching
 
 = 2.2.3 =
 Minor update for resuming save for later

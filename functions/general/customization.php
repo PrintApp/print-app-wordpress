@@ -2,93 +2,88 @@
 
     namespace printapp\functions\general;
 
-    function get_user_token() {
-        if (isset($_COOKIE[PRINT_APP_CUSTOMIZATION_KEY]))
-            return $_COOKIE[PRINT_APP_CUSTOMIZATION_KEY];
-    
-        // Generate a random token for the user (guest or signed-in)
-        if (!headers_sent()) {
-            $token = bin2hex(random_bytes(16));
-            $cookie_set = setcookie(PRINT_APP_CUSTOMIZATION_KEY, $token, time() + PRINT_APP_CUSTOMIZATION_DURATION, '/');
-            
-            if (!$cookie_set) {
-                // Handle error if cookie cannot be set
-                error_log('[PRINTAPP] Failed to set cookie: ' . PRINT_APP_CUSTOMIZATION_KEY);
-            } else {
-                return $token;
-            }
+    /**
+     * Customization storage.
+     *
+     * As of 2.3.0 the customization payload is stored in the WooCommerce
+     * customer session (WC()->session) instead of a transient keyed by a
+     * self-managed token.
+     *
+     * Why: the previous transient + self-managed cookie/token + native PHP
+     * $_SESSION backup could leak across customers on sites with full-page
+     * caching (a cached Set-Cookie header — the guest token or PHPSESSID —
+     * is replayed to every visitor, so they share one storage key). That is
+     * the cause of "customer 2 gets customer 1's artwork in the cart".
+     * WC()->session is keyed by WooCommerce's own session cookie, which page
+     * caches are already configured to bypass, and is scoped per customer by
+     * design — so we no longer need to invent a per-user token at all.
+     */
+
+    /**
+     * Return the WooCommerce session handler, or null if unavailable.
+     *
+     * @param bool $create When true, force the customer session cookie to be
+     *                     set so the data persists across requests. Only do
+     *                     this on writes — forcing it on every read would set
+     *                     a WC session cookie for every product-page visitor
+     *                     and hurt full-page cache hit rates site-wide.
+     */
+    function pa_get_session($create = false) {
+        if (!function_exists('WC')) {
+            return null;
         }
+        $wc = WC();
+        if (!$wc || !isset($wc->session) || !$wc->session) {
+            return null;
+        }
+        if ($create && !$wc->session->has_session()) {
+            $wc->session->set_customer_session_cookie(true);
+        }
+        return $wc->session;
     }
 
-    // Sanitize and validate inputs for better security
+    function pa_session_key($product_id) {
+        return 'pa_customization_' . absint($product_id);
+    }
+
     function save_customization_data($product_id, $customization_data) {
-        $product_id = absint($product_id); // Ensure product_id is an integer
-        $customization_data = wp_unslash($customization_data); // Remove slashes from input
+        $product_id = absint($product_id);
+        $customization_data = wp_unslash($customization_data);
 
-        $user_token = get_user_token();
-        if (!is_string($user_token) || empty($user_token)) {
-            return false; // Invalid token
+        $session = pa_get_session(true);
+        if (!$session) {
+            return false;
         }
-        $key = 'print_app_' . $user_token . '_' . $product_id;
 
-        // Try saving to transient first
-        delete_transient($key);
-        $transient_result = set_transient($key, $customization_data, PRINT_APP_CUSTOMIZATION_KEY);
+        $key = pa_session_key($product_id);
+        $session->set($key, $customization_data);
 
-        // Also save to session as a backup
-        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $_SESSION[$key] = $customization_data;
-
-        // Return the key if transient save was successful, otherwise FALSE
-        return $transient_result !== FALSE ? $key : FALSE;
+        return $key;
     }
 
     function get_customization_data($product_id) {
-        $user_token = get_user_token();
-        if (!is_string($user_token) || empty($user_token)) {
-            return false; // Invalid token
-        }
-        $key = 'print_app_' . $user_token . '_' . $product_id;
+        $product_id = absint($product_id);
 
-        // Try getting from transient first
-        $data = get_transient($key);
-
-        if ($data !== false) {
-            return $data;
+        $session = pa_get_session(false);
+        if (!$session) {
+            return false;
         }
 
-        // If transient failed or expired, try getting from session
-        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
-            session_start();
+        $data = $session->get(pa_session_key($product_id), false);
+        if ($data === false || empty($data)) {
+            return false;
         }
 
-        if (isset($_SESSION[$key])) {
-            // Optionally, restore the transient if found in session
-            return $_SESSION[$key];
-        }
-
-        return false; // Return false if not found in either
+        return $data;
     }
 
     function delete_customization_data($product_id) {
-        $user_token = get_user_token();
-        if (!is_string($user_token) || empty($user_token)) {
-            return false; // Invalid token
-        }
-        $key = 'print_app_' . $user_token . '_' . $product_id;
+        $product_id = absint($product_id);
 
-        // Delete from transient
-        delete_transient($key);
-
-        // Delete from session
-        if (!headers_sent() && session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (isset($_SESSION[$key])) {
-            unset($_SESSION[$key]);
+        $session = pa_get_session(false);
+        if ($session) {
+            $session->__unset(pa_session_key($product_id));
         }
 
-        return TRUE;
+        return true;
     }
