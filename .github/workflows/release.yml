@@ -22,7 +22,8 @@ jobs:
       - name: Merge and release latest changes into the SVN repo
         env:
           COMMIT_MSG:  ${{ github.event.head_commit.message }}
-          SVN_SECRET: ${{ secrets.WP_SVN_SECRET }}
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
           TAG: ${{ github.ref_name }}
         run: |
           cd ..
@@ -35,7 +36,7 @@ jobs:
           svn add trunk/* --force
           svn cp trunk/ tags/$VERSION
           svn add tags/$VERSION/* --force
-          svn ci -m "$COMMIT_MSG" --username printapp --password $SVN_SECRET
+          svn ci -m "$COMMIT_MSG" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --non-interactive --no-auth-cache
       
       - name: Commit the version updates
         uses: stefanzweifel/git-auto-commit-action@v4
