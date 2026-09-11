@@ -28,7 +28,7 @@
 						$post_fix = $print_app_customization['projectId'];
 						$previews = '';
 						foreach ($print_app_customization['previews'] as $preview) {
-							$previews .= '<img src="' . $preview['url'] . '" width="180px; margin-right:10px;"/>';
+							$previews .= '<img src="' . esc_url($preview['url']) . '" width="180" style="width:180px; margin-right:10px;" alt="" />';
 						}
 
 						$display = '
@@ -113,7 +113,7 @@
 				return '
 					<div class="print_app_order_meta" style="display: flex;">
 						<div onclick="pda_show_preview(this)" data-project-id="' . $pda_data["projectId"] . '" class="pda_show_preview" style="margin-right: 10px;">
-							<img src="' . $pda_data['previews'][0]['url'] . '" width="180px"/>
+							<img src="' . $pda_data['previews'][0]['url'] . '" width="180" style="width:180px;" alt="" />
 							<div>
 								<svg xmlns="http://www.w3.org/2000/svg" class="icon-tabler icon-tabler-search" width="22px" height="22px" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" data-v-09078359="">   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>   <circle cx="10" cy="10" r="7"></circle>   <line x1="21" y1="21" x2="15" y2="15"></line> </svg>
 							</div>

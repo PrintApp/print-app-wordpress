@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.8
-Stable tag: 2.3.1
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,11 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.3.2 =
+Fixed order emails shifting to the right: the customization previews and PDF link were output as bare <tr>/<td> tags outside any table, breaking the email wrapper. They are now wrapped in a standalone table
+Fixed invalid width="180px; margin-right:10px;" attribute on preview images in emails and admin order screens
+Plain-text order emails now receive plain-text preview and PDF links instead of HTML
 
 = 2.3.1 =
 Fixed customer data not being attached to projects on new orders due to an incorrect API endpoint URL
