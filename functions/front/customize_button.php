@@ -5,11 +5,20 @@
 	use printapp\functions\general as General;
 
 	function customize_button() {
-		// Guard against duplicate execution
+		//	The container is echoed on EVERY call; only the enqueue/localize
+		//	below is one-shot. Page builders (Divi's Woo Add To Cart module)
+		//	fire woocommerce_before_add_to_cart_button inside a render they
+		//	discard before the one they keep. A whole-function guard let the
+		//	discarded pass consume the echo, so the kept page had the script
+		//	and params but no #pa-buttons, and the Customize button vanished
+		//	(s-druk.com.ua, 2026-09-21). A repeated empty div is harmless:
+		//	the client mounts into the first #pa-buttons only.
+		echo '<div id="pa-buttons"></div>';
+
 		static $already_run = false;
 		if ($already_run) return;
 		$already_run = true;
-		
+
 		global $post;
 		$printapp_domain_key = get_option('print_app_domain_key');
 
@@ -52,8 +61,6 @@
 			'cookieKey' 	=> PRINT_APP_CUSTOMIZATION_KEY,
 			'wp_ajax_url' 	=> admin_url('admin-ajax.php'),
 		));
-
-		echo '<div id="pa-buttons"></div>';
 	}
 
 	function get_user_data() {

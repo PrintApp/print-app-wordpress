@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.8
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.3.3 =
+Fixed the Customize button disappearing on product pages built with page-builder Add To Cart modules (e.g. Divi Theme Builder). The button container is now output on every woocommerce_before_add_to_cart_button call, while the script enqueue stays one-shot
 
 = 2.3.2 =
 Fixed order emails shifting to the right: the customization previews and PDF link were output as bare <tr>/<td> tags outside any table, breaking the email wrapper. They are now wrapped in a standalone table
