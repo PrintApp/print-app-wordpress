@@ -30,7 +30,12 @@
             // for backward compatibility
 			add_filter('woocommerce_order_item_display_meta_value', 'printapp\\functions\\admin\\print_app_filter_wc_order_item_display_meta_value', 20, 2);
 
-        } else if (\printapp\functions\general\request_type('frontend')) {
+        }
+
+        // Not an else: admin-ajax.php is is_admin(), and themes like WoodMart
+        // add to cart through it. Under the old else-if the cart hooks never
+        // registered there, so the line went in without the design.
+        if (\printapp\functions\general\request_type('frontend')) {
 
             add_action('woocommerce_before_add_to_cart_button', 'printapp\\functions\\front\\customize_button');
 

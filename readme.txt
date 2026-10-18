@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.8
-Stable tag: 2.3.3
+Stable tag: 2.3.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.3.4 =
+Fixed customizations not reaching the cart on themes that add to cart through admin-ajax.php (e.g. WoodMart with AJAX Add to cart on). The cart and order hooks now register on admin-ajax requests too
 
 = 2.3.3 =
 Fixed the Customize button disappearing on product pages built with page-builder Add To Cart modules (e.g. Divi Theme Builder). The button container is now output on every woocommerce_before_add_to_cart_button call, while the script enqueue stays one-shot
