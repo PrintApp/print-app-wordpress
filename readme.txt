@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 6.8
-Stable tag: 2.3.4
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.4.0 =
+New: Send to Lulu. Paid orders go to Lulu's Print API for printing and shipping: each order line with a Print.App design, on a product that has a Lulu product (POD package ID) and interior PDF set in its new Lulu tab, is sent with the customer's design as the cover and the order's shipping address. Runs in the background, with automatic retries for temporary failures, results in the order notes, and order actions to send again or refresh the print job status. The Lulu tab also shows the cover size to design for. Off by default; switch it on and add your Lulu API key under Print.App settings, with a sandbox mode for testing
 
 = 2.3.4 =
 Fixed customizations not reaching the cart on themes that add to cart through admin-ajax.php (e.g. WoodMart with AJAX Add to cart on). The cart and order hooks now register on admin-ajax requests too
