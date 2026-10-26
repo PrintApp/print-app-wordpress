@@ -289,6 +289,7 @@
 
 		$order->update_meta_data(META_STATUS, $status);
 		$order->add_order_note('Lulu: print job #' . $job_id . ' is ' . $status . '.'
+			. ($status === 'UNPAID' ? ' Lulu accepted the files; pay for the job in your Lulu account to start printing.' : '')
 			. ($problems ? ' ' . implode(' ', array_unique($problems)) : '')
 			. ($tracking ? ' Tracking: ' . implode(' ', array_unique($tracking)) : ''));
 		$order->save();
