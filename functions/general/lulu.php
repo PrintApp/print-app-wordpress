@@ -184,6 +184,10 @@
 		$lines = order_lines($order);
 		if (!$lines) return new \WP_Error('lulu_nothing', 'No order lines are set up for Lulu.', ['retry' => false]);
 
+		// keys first: no point rendering and storing covers Lulu won't accept
+		$token = token();
+		if (is_wp_error($token)) return $token;
+
 		$covers = [];
 		foreach ($lines as $line) {
 			$cover = store_cover($order, $line['project_id']);

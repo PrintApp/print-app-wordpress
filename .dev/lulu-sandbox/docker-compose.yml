@@ -1,0 +1,60 @@
+# Local WooCommerce shop for testing Send to Lulu against Lulu's sandbox.
+# The plugin is mounted from this repo, so edits apply without rebuilding.
+# The tunnel gives the shop a public https address: Lulu downloads cover PDFs
+# from the shop's uploads folder, which it can't do from plain localhost.
+# Start with ./setup.sh (see README.md), not docker compose up directly.
+
+name: printapp-lulu-sandbox
+
+x-db-env: &db-env
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_USER: wordpress
+  WORDPRESS_DB_PASSWORD: wordpress
+  WORDPRESS_DB_NAME: wordpress
+
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - db:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:7.0-php8.3-apache
+    depends_on: [db]
+    ports:
+      - "8088:80"
+    environment:
+      <<: *db-env
+      # behind the tunnel, requests arrive as http with X-Forwarded-Proto: https
+      WORDPRESS_CONFIG_EXTRA: |
+        if (($$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') $$_SERVER['HTTPS'] = 'on';
+        define('DISABLE_WP_CRON', true);
+    volumes:
+      - wp:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/printapp:ro
+
+  cli:
+    image: wordpress:cli-php8.3
+    profiles: [tools]
+    user: "33:33"
+    depends_on: [db]
+    environment:
+      <<: *db-env
+    volumes:
+      - wp:/var/www/html
+      - ../..:/var/www/html/wp-content/plugins/printapp:ro
+      - ./:/sandbox:ro
+
+  tunnel:
+    image: cloudflare/cloudflared:2025.8.1
+    command: tunnel --no-autoupdate --url http://wordpress:80
+    depends_on: [wordpress]
+
+volumes:
+  db:
+  wp:

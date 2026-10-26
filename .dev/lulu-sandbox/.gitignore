@@ -1,0 +1,2 @@
+# Lulu sandbox keys and the local admin password: never commit
+.env.local
