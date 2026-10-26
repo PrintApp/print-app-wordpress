@@ -276,12 +276,20 @@
 
 		$status = $result['body']['status']['name'] ?? 'UNKNOWN';
 		$tracking = [];
+		$problems = [];	// why Lulu rejected a file, e.g. a cover of the wrong size
 		foreach (($result['body']['line_items'] ?? []) as $line) {
 			foreach (($line['tracking_urls'] ?? []) as $url) $tracking[] = $url;
+			foreach (['cover', 'interior'] as $file) {
+				foreach (($line['status']['messages']['printable_normalization'][$file] ?? []) as $message) {
+					$problems[] = ucfirst($file) . ' (' . ($line['title'] ?? 'item') . '): ' . $message;
+				}
+			}
+			if (!empty($line['status']['messages']['error'])) $problems[] = $line['status']['messages']['error'];
 		}
 
 		$order->update_meta_data(META_STATUS, $status);
 		$order->add_order_note('Lulu: print job #' . $job_id . ' is ' . $status . '.'
+			. ($problems ? ' ' . implode(' ', array_unique($problems)) : '')
 			. ($tracking ? ' Tracking: ' . implode(' ', array_unique($tracking)) : ''));
 		$order->save();
 	}

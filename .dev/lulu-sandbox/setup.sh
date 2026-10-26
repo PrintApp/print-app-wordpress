@@ -11,7 +11,16 @@ cd "$(dirname "$0")"
 export MSYS_NO_PATHCONV=1
 
 touch .env.local
-set -a; . ./.env.local; set +a
+load_env() {	# .env.local, without overriding what the command line already set
+	while IFS='=' read -r key value || [ -n "$key" ]; do
+		key=${key//[[:space:]]/}
+		[[ -z "$key" || "$key" == \#* ]] && continue
+		value=${value%$'\r'}
+		[ -z "${!key:-}" ] && export "$key=$value"
+	done < .env.local
+	return 0
+}
+load_env
 
 wp() {
 	docker compose run --rm -T \
@@ -34,12 +43,13 @@ case "${1:-up}" in
 	*) echo "usage: $0 [up|configure|order|status|refresh|down]"; exit 1 ;;
 esac
 
+started=$(date -u +%Y-%m-%dT%H:%M:%SZ)	# the logs keep earlier runs' (dead) addresses
 docker compose up -d db wordpress tunnel
 
 echo "Waiting for the tunnel address..."
 url=""
 for _ in $(seq 1 60); do
-	url=$(docker compose logs tunnel 2>/dev/null | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1 || true)
+	url=$(docker compose logs --since "$started" tunnel 2>/dev/null | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1 || true)
 	[ -n "$url" ] && break
 	sleep 2
 done
@@ -55,7 +65,7 @@ until wp db check >/dev/null 2>&1; do sleep 2; done
 if ! wp core is-installed >/dev/null 2>&1; then
 	if ! grep -q '^WP_ADMIN_PASSWORD=' .env.local; then
 		printf '\n# local WordPress admin (user: admin)\nWP_ADMIN_PASSWORD=%s\n' "$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)" >> .env.local
-		set -a; . ./.env.local; set +a
+		load_env
 	fi
 	wp core install --url="$url" --title="Print.App Lulu sandbox" --admin_user=admin \
 		--admin_password="$WP_ADMIN_PASSWORD" --admin_email=admin@example.com --skip-email
