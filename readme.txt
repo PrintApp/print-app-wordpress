@@ -102,7 +102,7 @@ Check out our [website for more details](https://print.app)
 == Changelog ==
 
 = 2.4.0 =
-New: Send to Lulu. Paid orders go to Lulu's Print API for printing and shipping: each order line with a Print.App design, on a product that has a Lulu product (POD package ID) and interior PDF set in its new Lulu tab, is sent with the customer's design as the cover and the order's shipping address. Runs in the background, with automatic retries for temporary failures, results in the order notes, and order actions to send again or refresh the print job status. The Lulu tab also shows the cover size to design for. Off by default; switch it on and add your Lulu API key under Print.App settings, with a sandbox mode for testing
+New: Send to Lulu. Paid orders go to Lulu's Print API for printing and shipping: each order line with a Print.App design, on a product that has a Lulu product (POD package ID) and interior PDF set in its new Lulu tab, is sent with the customer's design as the cover and the order's shipping address. Runs in the background, with automatic retries for temporary failures, results in the order notes (including Lulu's reasons if it rejects a file), and order actions to send again or refresh the print job status. The Lulu tab also shows the cover size to design for. Off by default; switch it on and add your Lulu API key under Print.App settings, with a sandbox mode for testing
 
 = 2.3.4 =
 Fixed customizations not reaching the cart on themes that add to cart through admin-ajax.php (e.g. WoodMart with AJAX Add to cart on). The cart and order hooks now register on admin-ajax requests too
