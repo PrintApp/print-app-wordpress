@@ -4,8 +4,9 @@
 
 	use printapp\functions\lulu;
 
-	// Admin side of Send to Lulu: the settings section, the product's Lulu tab and the
-	// order actions. The sending itself lives in functions/general/lulu.php.
+	// Admin side of Send to Lulu: its settings (a panel under Fulfilment providers, see
+	// fulfilment.php), the product's Lulu tab and the order actions. The sending itself
+	// lives in functions/general/lulu.php.
 
 	function lulu_settings_intro() {
 		echo '<p>' . __('Send paid orders to <a target="_blank" href="https://www.lulu.com/sell/sell-on-your-site/print-api">Lulu</a> for printing and shipping. Each order line with a Print.App design, on a product that has a Lulu product and interior PDF set (product data &gt; Lulu tab), goes to Lulu with the customer\'s design as the cover. Lulu bills your Lulu account directly, and keeps a new print job unpaid until you pay for it there, unless you keep a payment card on file.', 'printapp') . '</p>'
@@ -13,7 +14,7 @@
 	}
 
 	function lulu_settings_init() {
-		add_settings_section('print_app_lulu_section', __('Send to Lulu', 'printapp'), 'printapp\\functions\\admin\\lulu_settings_intro', 'print_app');
+		add_settings_section('print_app_lulu_section', '', 'printapp\\functions\\admin\\lulu_settings_intro', 'print_app_lulu');
 
 		$fields = [
 			'print_app_lulu_enabled'        => __('Send paid orders to Lulu:', 'printapp'),
@@ -24,7 +25,7 @@
 			'print_app_lulu_shipping_level' => __('Lulu shipping level:', 'printapp'),
 		];
 		foreach ($fields as $id => $label) {
-			add_settings_field($id, $label, 'printapp\\functions\\admin\\' . $id, 'print_app', 'print_app_lulu_section');
+			add_settings_field($id, $label, 'printapp\\functions\\admin\\' . $id, 'print_app_lulu', 'print_app_lulu_section');
 		}
 
 		register_setting('print_app', 'print_app_lulu_enabled', ['sanitize_callback' => function ($value) { return $value === 'on' ? 'on' : ''; }]);

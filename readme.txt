@@ -102,6 +102,7 @@ Check out our [website for more details](https://print.app)
 == Changelog ==
 
 = 2.4.1 =
+Changed: optional fulfilment providers, such as Lulu, now sit in a collapsed "Fulfilment providers" section at the bottom of the settings page
 New: an order whose Lulu print job was rejected or canceled can be sent again, with the order action "Send Print.App designs to Lulu again". The rejection note in the order says how
 Fixed the customer's design preview not showing in the Cart and Checkout blocks (the default cart and checkout in current WooCommerce); it showed only in the classic cart
 Tested with WordPress 7.1 and WooCommerce 11.2

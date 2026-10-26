@@ -26,6 +26,7 @@
 		
 			settings_fields('print_app');
 			do_settings_sections('print_app');
+			fulfilment_section();
 			submit_button();
 
 		echo '</div></form>';
