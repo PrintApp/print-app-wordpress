@@ -144,12 +144,14 @@
 		}
 	}
 
-	// Order actions: send (or retry) and refresh the status.
+	// Order actions: send (or retry, or resend after Lulu rejected or canceled the job) and refresh the status.
 	function lulu_order_actions($actions, $order = null) {
 		if (!lulu\enabled()) return $actions;
 		$order = $order ?: ($GLOBALS['theorder'] ?? null);	// WooCommerce before 6.x passes only $actions
 		if ($order && !$order->get_meta(lulu\META_JOB)) {
 			$actions['print_app_lulu_send'] = __('Send Print.App designs to Lulu', 'printapp');
+		} else if ($order && lulu\can_resend($order)) {
+			$actions['print_app_lulu_send'] = __('Send Print.App designs to Lulu again', 'printapp');
 		}
 		if ($order && $order->get_meta(lulu\META_JOB)) {
 			$actions['print_app_lulu_refresh'] = __('Refresh Lulu print job status', 'printapp');
@@ -158,18 +160,24 @@
 	}
 
 	function lulu_order_action_send($order) {
-		if ($order->get_meta(lulu\META_JOB)) {
-			$order->add_order_note(sprintf(__('Lulu: already sent as print job #%s, so it was not sent again.', 'printapp'), $order->get_meta(lulu\META_JOB)));
+		$previous = $order->get_meta(lulu\META_JOB);
+		if ($previous && !lulu\can_resend($order)) {
+			$order->add_order_note(sprintf(__('Lulu: already sent as print job #%s, so it was not sent again.', 'printapp'), $previous));
 			return;
 		}
 		if (!lulu\order_lines($order)) {
 			$order->add_order_note(__('Lulu: nothing to send. No line has a Print.App design on a product with a Lulu product and interior PDF set.', 'printapp'));
 			return;
 		}
+		$previous_status = $order->get_meta(lulu\META_STATUS);
+		$order->delete_meta_data(lulu\META_JOB);	// the old job stays in Lulu, marked rejected or canceled
+		$order->delete_meta_data(lulu\META_STATUS);
 		$order->delete_meta_data(lulu\META_ATTEMPTS);
 		$order->save();
 		lulu\schedule($order->get_id());
-		$order->add_order_note(__('Lulu: queued for sending. The result appears in these notes within a few minutes.', 'printapp'));
+		$order->add_order_note($previous
+			? sprintf(__('Lulu: print job #%1$s was %2$s, so the order is queued to be sent again as a new print job. The result appears in these notes within a few minutes.', 'printapp'), $previous, $previous_status)
+			: __('Lulu: queued for sending. The result appears in these notes within a few minutes.', 'printapp'));
 	}
 
 	function lulu_order_action_refresh($order) {

@@ -2,8 +2,8 @@
 Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
-Tested up to: 6.8
-Stable tag: 2.4.0
+Tested up to: 7.1
+Stable tag: 2.4.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,11 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.4.1 =
+New: an order whose Lulu print job was rejected or canceled can be sent again, with the order action "Send Print.App designs to Lulu again". The rejection note in the order says how
+Fixed the customer's design preview not showing in the Cart and Checkout blocks (the default cart and checkout in current WooCommerce); it showed only in the classic cart
+Tested with WordPress 7.1 and WooCommerce 11.2
 
 = 2.4.0 =
 New: Send to Lulu. Paid orders go to Lulu's Print API for printing and shipping: each order line with a Print.App design, on a product that has a Lulu product (POD package ID) and interior PDF set in its new Lulu tab, is sent with the customer's design as the cover and the order's shipping address. Runs in the background, with automatic retries for temporary failures, results in the order notes (including Lulu's reasons if it rejects a file), and order actions to send again or refresh the print job status. The Lulu tab also shows the cover size to design for. Off by default; switch it on and add your Lulu API key under Print.App settings, with a sandbox mode for testing

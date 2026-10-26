@@ -53,6 +53,7 @@
 
             // change the cart thumbnail to the customized image
             add_filter('woocommerce_cart_item_thumbnail', 'printapp\\functions\\front\\cart_item_thumbnail', 10, 3);
+            add_filter('woocommerce_store_api_cart_item_images', 'printapp\\functions\\front\\store_api_cart_item_images', 10, 3);
 
             // add the customization data to the order item
             add_filter('woocommerce_checkout_create_order_line_item', 'printapp\\functions\\front\\add_order_item_meta', 70, 2);

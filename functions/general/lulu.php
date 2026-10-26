@@ -18,6 +18,7 @@
 	const META_STATUS = '_print_app_lulu_status';
 	const META_ATTEMPTS = '_print_app_lulu_attempts';
 	const RETRY_DELAYS = [15 * MINUTE_IN_SECONDS, HOUR_IN_SECONDS];	// after attempts 1 and 2
+	const RESENDABLE = ['REJECTED', 'CANCELED'];	// Lulu's end states in which nothing is printed
 
 	function enabled() {
 		return get_option('print_app_lulu_enabled') === 'on'
@@ -220,6 +221,11 @@
 		schedule($order_id);
 	}
 
+	// An order whose print job Lulu rejected or canceled may be sent again, by hand only.
+	function can_resend($order) {
+		return $order->get_meta(META_JOB) && in_array($order->get_meta(META_STATUS), RESENDABLE, true);
+	}
+
 	// The scheduled send. Never sends an order twice: an order with a print job is skipped.
 	function send_order($order_id) {
 		$order = wc_get_order($order_id);
@@ -291,7 +297,8 @@
 		$order->add_order_note('Lulu: print job #' . $job_id . ' is ' . $status . '.'
 			. ($status === 'UNPAID' ? ' Lulu accepted the files; pay for the job in your Lulu account to start printing.' : '')
 			. ($problems ? ' ' . implode(' ', array_unique($problems)) : '')
-			. ($tracking ? ' Tracking: ' . implode(' ', array_unique($tracking)) : ''));
+			. ($tracking ? ' Tracking: ' . implode(' ', array_unique($tracking)) : '')
+			. (in_array($status, RESENDABLE, true) ? ' Fix the problem, then use the order action "Send Print.App designs to Lulu again".' : ''));
 		$order->save();
 	}
 

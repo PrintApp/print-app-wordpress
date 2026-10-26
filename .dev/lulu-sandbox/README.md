@@ -33,3 +33,19 @@ shows up in the order notes after `refresh`.
 
 The shop admin is at `<shop address>/wp-admin`, user `admin`, with the password that
 `setup.sh` saved in `.env.local`.
+
+## Storefront (Customize button, cart, checkout)
+
+The Print.App editor only opens on a domain's own store address or on `localhost`; on
+the tunnel address it says "domain mismatch". So test the storefront at
+`http://localhost:8088`, with the tunnel stopped and `home`/`siteurl` set back to it:
+
+```
+docker compose stop tunnel
+docker compose run --rm -T cli wp option update home http://localhost:8088
+docker compose run --rm -T cli wp option update siteurl http://localhost:8088
+```
+
+PHP notices and deprecations go to `wp-content/debug.log` in the shop
+(`docker compose exec wordpress cat wp-content/debug.log`). WooCommerce keeps the shop
+in "Coming soon" mode, so it's hidden from logged-out visitors on the public address.
