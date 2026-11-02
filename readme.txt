@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 7.1
-Stable tag: 2.4.1
+Stable tag: 2.4.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,13 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.4.2 =
+New: variations can each be their own Lulu product, such as a glossy and a matte cover, set under Variations. A variation left empty uses the product's
+New: Lulu print job statuses are checked automatically every few hours until the job ships, with a note only when something changes and tracking links once shipped. An optional "Complete shipped orders" setting marks shipped orders Completed, and the customer's order complete email includes the tracking link
+Changed: the product's Lulu tab appears as soon as a Lulu API key and secret are saved, so products can be set up before sending is switched on
+Fixed the Lulu tab showing nothing when Lulu could not work out the cover size; it now shows Lulu's reason, or asks for the page count when it is missing
+Fixed the Lulu product field showing an example ID that looked like a value already filled in; the example is now in the help text below it
 
 = 2.4.1 =
 Changed: optional fulfilment providers, such as Lulu, now sit in a collapsed "Fulfilment providers" section at the bottom of the settings page

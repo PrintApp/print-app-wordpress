@@ -19,11 +19,24 @@
 	const META_ATTEMPTS = '_print_app_lulu_attempts';
 	const RETRY_DELAYS = [15 * MINUTE_IN_SECONDS, HOUR_IN_SECONDS];	// after attempts 1 and 2
 	const RESENDABLE = ['REJECTED', 'CANCELED'];	// Lulu's end states in which nothing is printed
+	const META_POD = '_print_app_lulu_pod_package_id';	// on a product, or on a variation to override it
+	const META_TRACKING = '_print_app_lulu_tracking';
+	const META_SENT_AT = '_print_app_lulu_sent_at';
+	const STATUS_HOOK = 'print_app_lulu_check_status';
+	const CHECK_FIRST = 30 * MINUTE_IN_SECONDS;	// Lulu checks the files within minutes
+	const CHECK_EVERY = 6 * HOUR_IN_SECONDS;
+	const CHECK_FOR_DAYS = 45;	// an unpaid job isn't checked forever
+	const SETTLED = ['SHIPPED', 'DELIVERED', 'REJECTED', 'CANCELED'];	// nothing more to check
 
+	// Orders are sent: switched on, with an API key and secret.
 	function enabled() {
-		return get_option('print_app_lulu_enabled') === 'on'
-			&& get_option('print_app_lulu_client_key')
-			&& get_option('print_app_lulu_client_secret');
+		return get_option('print_app_lulu_enabled') === 'on' && connected();
+	}
+
+	// An API key and secret are saved: the product's Lulu tab, cover sizes and status checks
+	// work, even while sending is still switched off.
+	function connected() {
+		return get_option('print_app_lulu_client_key') && get_option('print_app_lulu_client_secret');
 	}
 
 	function environment() {
@@ -58,7 +71,8 @@
 		return $body['access_token'];
 	}
 
-	// A JSON request to the Lulu API: ['status' => int, 'body' => array|null] or WP_Error.
+	// A JSON request to the Lulu API: ['status' => int, 'body' => array|null, 'raw' => string]
+	// or WP_Error. 'raw' keeps a reply that isn't JSON, such as a firewall's error page.
 	function request($method, $path, $data = null, $retried = false) {
 		$token = token();
 		if (is_wp_error($token)) return $token;
@@ -78,12 +92,16 @@
 			token(true);
 			return request($method, $path, $data, true);
 		}
-		return ['status' => $status, 'body' => json_decode(wp_remote_retrieve_body($response), true)];
+		$raw = (string) wp_remote_retrieve_body($response);
+		return ['status' => $status, 'body' => json_decode($raw, true), 'raw' => $raw];
 	}
 
-	// The product's Lulu settings, or null when it isn't set up for Lulu.
-	function product_settings($product_id) {
-		$pod = trim((string) get_post_meta($product_id, '_print_app_lulu_pod_package_id', true));
+	// The product's Lulu settings, or null when it isn't set up for Lulu. A variation can be its
+	// own Lulu product (e.g. glossy and matte covers are different Lulu products); otherwise it
+	// uses the product's.
+	function product_settings($product_id, $variation_id = 0) {
+		$pod = $variation_id ? trim((string) get_post_meta($variation_id, META_POD, true)) : '';
+		if ($pod === '') $pod = trim((string) get_post_meta($product_id, META_POD, true));
 		$interior = trim((string) get_post_meta($product_id, '_print_app_lulu_interior_url', true));
 		return ($pod !== '' && $interior !== '') ? ['pod_package_id' => $pod, 'interior' => $interior] : null;
 	}
@@ -96,7 +114,7 @@
 			$project_id = is_array($customization) ? ($customization['projectId'] ?? '') : '';
 			if ($project_id === '') continue;
 
-			$settings = product_settings($item->get_product_id());
+			$settings = product_settings($item->get_product_id(), $item->get_variation_id());
 			if ($settings) $lines[] = ['item_id' => $item_id, 'item' => $item, 'project_id' => $project_id, 'settings' => $settings];
 		}
 		return $lines;
@@ -173,8 +191,14 @@
 		];
 	}
 
-	// Lulu's error body, short enough for an order note.
+	// Lulu's error body, short enough for an order note. Pass the whole request() result to
+	// keep a reply that isn't JSON, which would otherwise read as an empty error.
 	function describe_error($body) {
+		if (is_array($body) && array_key_exists('raw', $body)) {
+			$result = $body;
+			$body = $result['body'] ?? trim(wp_strip_all_tags($result['raw']));
+			if ($body === '' || $body === []) $body = 'HTTP ' . $result['status'];
+		}
 		$text = is_array($body) ? wp_json_encode($body) : (string) $body;
 		return strlen($text) > 600 ? substr($text, 0, 600) . '…' : $text;
 	}
@@ -201,7 +225,7 @@
 
 		if ($result['status'] !== 201 || empty($result['body']['id'])) {
 			$retry = $result['status'] >= 500 || $result['status'] === 429;
-			return new \WP_Error('lulu_rejected', "Lulu didn't accept the print job (HTTP {$result['status']}): " . describe_error($result['body']), ['retry' => $retry]);
+			return new \WP_Error('lulu_rejected', "Lulu didn't accept the print job (HTTP {$result['status']}): " . describe_error($result), ['retry' => $retry]);
 		}
 		return $result['body'];
 	}
@@ -261,23 +285,54 @@
 		$status = $job['status']['name'] ?? 'CREATED';
 		$order->update_meta_data(META_JOB, (string) $job['id']);
 		$order->update_meta_data(META_STATUS, $status);
+		$order->update_meta_data(META_SENT_AT, time());
 		$order->delete_meta_data(META_ATTEMPTS);
+		$order->delete_meta_data(META_TRACKING);
 		$order->add_order_note(sprintf(
 			'Lulu%s: sent as print job #%s (status: %s). Lulu holds a new job until it is paid for in your Lulu account, unless you keep a payment card on file there.',
 			$environment, $job['id'], $status
 		));
 		$order->save();
+
+		schedule_check($order_id, CHECK_FIRST);
 	}
 
-	// The latest status from Lulu, with tracking links once it has shipped.
-	function refresh_status($order) {
+	// The next automatic status check for an order; never more than one queued.
+	function schedule_check($order_id, $delay) {
+		if (function_exists('as_schedule_single_action')) {
+			as_unschedule_all_actions(STATUS_HOOK, [$order_id], 'printapp');
+			as_schedule_single_action(time() + $delay, STATUS_HOOK, [$order_id], 'printapp');
+		} else {
+			wp_clear_scheduled_hook(STATUS_HOOK, [$order_id]);
+			wp_schedule_single_event(time() + $delay, STATUS_HOOK, [$order_id]);
+		}
+	}
+
+	// The scheduled status check: a note only when something changed, then the next check,
+	// until the job has shipped, been rejected or canceled, or CHECK_FOR_DAYS have passed.
+	function check_status($order_id) {
+		$order = wc_get_order($order_id);
+		if (!$order || !$order->get_meta(META_JOB) || !connected()) return;
+
+		$status = refresh_status($order, true);
+		if (in_array($status, SETTLED, true)) return;
+
+		$sent_at = (int) $order->get_meta(META_SENT_AT);
+		if ($sent_at && time() - $sent_at > CHECK_FOR_DAYS * DAY_IN_SECONDS) return;
+		schedule_check($order_id, CHECK_EVERY);
+	}
+
+	// The latest status from Lulu, with tracking links once it has shipped. Returns the status,
+	// or null when Lulu couldn't be asked. Quiet (the automatic checks) adds a note only when
+	// the status or tracking changed; a refresh by hand always adds one.
+	function refresh_status($order, $quiet = false) {
 		$job_id = $order->get_meta(META_JOB);
-		if (!$job_id || !enabled()) return;
+		if (!$job_id || !connected()) return null;
 
 		$result = request('GET', '/print-jobs/' . rawurlencode($job_id) . '/');
 		if (is_wp_error($result) || $result['status'] !== 200) {
-			$order->add_order_note('Lulu: could not read print job #' . $job_id . '. ' . (is_wp_error($result) ? $result->get_error_message() : 'HTTP ' . $result['status']));
-			return;
+			if (!$quiet) $order->add_order_note('Lulu: could not read print job #' . $job_id . '. ' . (is_wp_error($result) ? $result->get_error_message() : 'HTTP ' . $result['status']));
+			return null;
 		}
 
 		$status = $result['body']['status']['name'] ?? 'UNKNOWN';
@@ -293,13 +348,47 @@
 			if (!empty($line['status']['messages']['error'])) $problems[] = $line['status']['messages']['error'];
 		}
 
+		$tracking = array_values(array_unique($tracking));
+		$changed = $status !== $order->get_meta(META_STATUS)
+			|| array_diff($tracking, (array) ($order->get_meta(META_TRACKING) ?: []));
+
 		$order->update_meta_data(META_STATUS, $status);
-		$order->add_order_note('Lulu: print job #' . $job_id . ' is ' . $status . '.'
-			. ($status === 'UNPAID' ? ' Lulu accepted the files; pay for the job in your Lulu account to start printing.' : '')
-			. ($problems ? ' ' . implode(' ', array_unique($problems)) : '')
-			. ($tracking ? ' Tracking: ' . implode(' ', array_unique($tracking)) : '')
-			. (in_array($status, RESENDABLE, true) ? ' Fix the problem, then use the order action "Send Print.App designs to Lulu again".' : ''));
+		if ($tracking) $order->update_meta_data(META_TRACKING, $tracking);
+		if (!$quiet || $changed) {
+			$order->add_order_note('Lulu: print job #' . $job_id . ' is ' . $status . '.'
+				. ($status === 'UNPAID' ? ' Lulu accepted the files; pay for the job in your Lulu account to start printing.' : '')
+				. ($problems ? ' ' . implode(' ', array_unique($problems)) : '')
+				. ($tracking ? ' Tracking: ' . implode(' ', $tracking) : '')
+				. (in_array($status, RESENDABLE, true) ? ' Fix the problem, then use the order action "Send Print.App designs to Lulu again".' : ''));
+		}
 		$order->save();
+
+		if ($status === 'SHIPPED' || $status === 'DELIVERED') complete_if_shipped($order);
+		return $status;
+	}
+
+	// With "Complete shipped orders" on, a shipped order is marked Completed, so WooCommerce
+	// emails the customer (with the tracking links, see email_tracking). Only when every item
+	// went to Lulu: anything else in the order may still need sending.
+	function complete_if_shipped($order) {
+		if (get_option('print_app_lulu_complete_on_ship') !== 'on') return;
+		if (!in_array($order->get_status(), ['processing', 'on-hold'], true)) return;
+		if (count(order_lines($order)) !== count($order->get_items())) return;
+		$order->update_status('completed', 'Lulu: shipped, so the order is complete.');
+	}
+
+	// woocommerce_email_order_details: the tracking links in the customer's "order complete" email.
+	function email_tracking($order, $sent_to_admin, $plain_text, $email) {
+		if ($sent_to_admin || !is_object($email) || ($email->id ?? '') !== 'customer_completed_order') return;
+		$tracking = (array) ($order->get_meta(META_TRACKING) ?: []);
+		if (!$tracking) return;
+
+		if ($plain_text) {
+			echo __('Track your order', 'printapp') . ': ' . implode(' ', array_map('esc_url', $tracking)) . "\n\n";
+			return;
+		}
+		$links = array_map(function ($url) { return '<a href="' . esc_url($url) . '">' . esc_html($url) . '</a>'; }, $tracking);
+		echo '<p><strong>' . esc_html__('Track your order', 'printapp') . ':</strong> ' . implode(' ', $links) . '</p>';
 	}
 
 	// The cover spread size for a product, from Lulu: "W × H mm", or WP_Error.
@@ -311,7 +400,7 @@
 		]);
 		if (is_wp_error($result)) return $result;
 		if ($result['status'] !== 201 || !isset($result['body']['width'], $result['body']['height']))
-			return new \WP_Error('lulu_cover', 'Lulu could not work out the cover size: ' . describe_error($result['body']));
+			return new \WP_Error('lulu_cover', "Lulu could not work out the cover size (HTTP {$result['status']}): " . describe_error($result));
 
 		return sprintf('%s × %s mm', round((float) $result['body']['width'], 1), round((float) $result['body']['height'], 1));
 	}

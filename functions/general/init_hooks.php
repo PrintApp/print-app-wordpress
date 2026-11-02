@@ -35,6 +35,8 @@
             add_filter('woocommerce_product_data_tabs', 'printapp\\functions\\admin\\add_lulu_product_tab', 10, 1);
             add_action('woocommerce_product_data_panels', 'printapp\\functions\\admin\\lulu_product_panel');
             add_action('woocommerce_process_product_meta', 'printapp\\functions\\admin\\save_lulu_product_fields');
+            add_action('woocommerce_product_after_variable_attributes', 'printapp\\functions\\admin\\lulu_variation_fields', 10, 3);
+            add_action('woocommerce_save_product_variation', 'printapp\\functions\\admin\\save_lulu_variation_fields', 10, 2);
             add_filter('woocommerce_order_actions', 'printapp\\functions\\admin\\lulu_order_actions', 10, 2);
             add_action('woocommerce_order_action_print_app_lulu_send', 'printapp\\functions\\admin\\lulu_order_action_send');
             add_action('woocommerce_order_action_print_app_lulu_refresh', 'printapp\\functions\\admin\\lulu_order_action_refresh');
@@ -74,6 +76,8 @@
         // Send to Lulu: queue paid orders; the queued send runs from cron / Action Scheduler
         add_action('woocommerce_order_status_processing', 'printapp\\functions\\lulu\\queue_order');
         add_action(\printapp\functions\lulu\SEND_HOOK, 'printapp\\functions\\lulu\\send_order');
+        add_action(\printapp\functions\lulu\STATUS_HOOK, 'printapp\\functions\\lulu\\check_status');
+        add_action('woocommerce_email_order_details', 'printapp\\functions\\lulu\\email_tracking', 5, 4);
 
         // add the customization info to the order email
         add_action('woocommerce_email_order_details', 'printapp\\functions\\general\\order_email', 10, 4);
