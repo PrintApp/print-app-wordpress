@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 7.1
-Stable tag: 2.4.2
+Stable tag: 2.4.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.4.3 =
+Fixed variable products opening the parent product's first design whatever size or option the customer picked; the designs assigned to a variation in Print.App are now opened when that variation is selected. A variation with no designs of its own uses the product's
 
 = 2.4.2 =
 New: variations can each be their own Lulu product, such as a glossy and a matte cover, set under Variations. A variation left empty uses the product's

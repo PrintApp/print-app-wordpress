@@ -27,6 +27,10 @@
 		if (!$lang_code) $lang_code = 'en';
 		$run_url = PRINT_APP_RUN_BASE_URL . $printapp_domain_key . '/' . $post->ID . '/wp?lang=' . $lang_code;
 		wp_enqueue_script('print_app_class', $run_url, '', '', true);
+
+		//	Variable products: hand the runtime the selected variation's
+		//	SKU, the key of the designs assigned per variation. See js/variation.js.
+		wp_enqueue_script('print_app_variation', PRINT_APP_VARIATION_JS, array('jquery'), '2.4.3', true);
 		
 		// get user data
 		$user_data = get_user_data();
