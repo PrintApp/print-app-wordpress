@@ -3,7 +3,7 @@ Contributors: Print.App
 Tags: customizer, photo album, print shop, web2print, gift print, diy print, product customizer, web-to-print, print software, print solution, HTML5 WYSIWYG, t-shirt designer, wysiwyg print editor, business card
 Requires at least: 3.8
 Tested up to: 7.1
-Stable tag: 2.4.3
+Stable tag: 2.4.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,9 @@ Check out our [website for more details](https://print.app)
 3. Admin settings manager.
 
 == Changelog ==
+
+= 2.4.4 =
+New: a "Lulu" WooCommerce shipping method. Added to a shipping zone, it shows customers Lulu's shipping options for their address at checkout, with Lulu's prices (plus an optional markup) and estimated delivery dates, and the option they pick is the level Lulu ships the order with. Offered once a Lulu API key and secret are saved, for carts where every item is a Lulu product
 
 = 2.4.3 =
 Fixed variable products opening the parent product's first design whatever size or option the customer picked; the designs assigned to a variation in Print.App are now opened when that variation is selected. A variation with no designs of its own uses the product's

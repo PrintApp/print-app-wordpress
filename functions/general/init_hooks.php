@@ -77,6 +77,8 @@
         add_action('woocommerce_order_status_processing', 'printapp\\functions\\lulu\\queue_order');
         add_action(\printapp\functions\lulu\SEND_HOOK, 'printapp\\functions\\lulu\\send_order');
         add_action(\printapp\functions\lulu\STATUS_HOOK, 'printapp\\functions\\lulu\\check_status');
+        add_action('woocommerce_shipping_init', 'printapp\\functions\\lulu\\shipping_init');
+        add_filter('woocommerce_shipping_methods', 'printapp\\functions\\lulu\\add_shipping_method');
         add_action('woocommerce_email_order_details', 'printapp\\functions\\lulu\\email_tracking', 5, 4);
 
         // add the customization info to the order email

@@ -27,6 +27,9 @@
 	const CHECK_EVERY = 6 * HOUR_IN_SECONDS;
 	const CHECK_FOR_DAYS = 45;	// an unpaid job isn't checked forever
 	const SETTLED = ['SHIPPED', 'DELIVERED', 'REJECTED', 'CANCELED'];	// nothing more to check
+	const SHIPPING_METHOD = 'print_app_lulu';	// the WooCommerce shipping method, see functions/shipping/lulu.php
+	const META_RATE_LEVEL = '_print_app_lulu_level';	// on the order's shipping line: the level the customer chose
+	const SHIPPING_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];	// the currencies Lulu prices shipping in
 
 	// Orders are sent: switched on, with an API key and secret.
 	function enabled() {
@@ -103,7 +106,11 @@
 		$pod = $variation_id ? trim((string) get_post_meta($variation_id, META_POD, true)) : '';
 		if ($pod === '') $pod = trim((string) get_post_meta($product_id, META_POD, true));
 		$interior = trim((string) get_post_meta($product_id, '_print_app_lulu_interior_url', true));
-		return ($pod !== '' && $interior !== '') ? ['pod_package_id' => $pod, 'interior' => $interior] : null;
+		return ($pod !== '' && $interior !== '') ? [
+			'pod_package_id' => $pod,
+			'interior'       => $interior,
+			'page_count'     => (int) get_post_meta($product_id, '_print_app_lulu_page_count', true),
+		] : null;
 	}
 
 	// The order lines that go to Lulu: a Print.App design on a product set up for Lulu.
@@ -162,9 +169,101 @@
 		], function ($value) { return $value !== ''; });
 	}
 
-	function shipping_level() {
+	// The Lulu shipping level for an order: the one the customer chose at checkout with the
+	// Lulu shipping method, otherwise the store's setting.
+	function shipping_level($order = null) {
+		if ($order) {
+			foreach ($order->get_shipping_methods() as $method) {
+				$level = $method->get_method_id() === SHIPPING_METHOD ? $method->get_meta(META_RATE_LEVEL) : '';
+				if (in_array($level, SHIPPING_LEVELS, true)) return $level;
+			}
+		}
 		$level = get_option('print_app_lulu_shipping_level');
 		return in_array($level, SHIPPING_LEVELS, true) ? $level : 'MAIL';
+	}
+
+	function level_name($level) {
+		switch ($level) {
+			case 'MAIL':          return __('Standard mail', 'printapp');
+			case 'PRIORITY_MAIL': return __('Priority mail', 'printapp');
+			case 'GROUND_HD':     return __('Ground, home delivery', 'printapp');
+			case 'GROUND_BUS':    return __('Ground, business delivery', 'printapp');
+			case 'GROUND':        return __('Ground', 'printapp');
+			case 'EXPEDITED':     return __('Expedited', 'printapp');
+			case 'EXPRESS':       return __('Express', 'printapp');
+		}
+		return $level;
+	}
+
+	// Lulu's shipping levels with their cost for these items to this address, cached for half an
+	// hour: checkout recalculates often. [] when Lulu can't be asked (logged under printapp-lulu).
+	function shipping_options($items, $destination, $currency) {
+		$address = array_filter([
+			'country'  => (string) ($destination['country'] ?? ''),
+			'state'    => (string) ($destination['state'] ?? ''),
+			'postcode' => (string) ($destination['postcode'] ?? ''),
+			'city'     => (string) ($destination['city'] ?? ''),
+			'street1'  => (string) ($destination['address'] ?? ($destination['address_1'] ?? '')),
+		], function ($value) { return $value !== ''; });
+		$body = ['currency' => $currency, 'line_items' => $items, 'shipping_address' => $address];
+
+		$cache_key = 'print_app_lulu_ship_' . md5(environment() . wp_json_encode($body));
+		$cached = get_transient($cache_key);
+		if (is_array($cached)) return $cached;
+
+		$result = request('POST', '/shipping-options/', $body);
+		if (is_wp_error($result) || $result['status'] !== 200 || !is_array($result['body'])) {
+			if (function_exists('wc_get_logger')) wc_get_logger()->warning('Lulu shipping options: ' . (is_wp_error($result)
+				? $result->get_error_message() : 'HTTP ' . $result['status'] . ' ' . describe_error($result)), ['source' => 'printapp-lulu']);
+			return [];
+		}
+		set_transient($cache_key, $result['body'], 30 * MINUTE_IN_SECONDS);
+		return $result['body'];
+	}
+
+	// The checkout rates for a cart (package) whose every item is a Lulu product: Lulu's options
+	// for the address, limited to the levels the shop offers, with its markup, cheapest first.
+	// Nothing when anything else is in the package (the shop's other methods ship that), or
+	// the store's currency isn't one Lulu prices in.
+	function shipping_rates($contents, $destination, $settings) {
+		$currency = get_woocommerce_currency();
+		if (!in_array($currency, SHIPPING_CURRENCIES, true) || empty($destination['country'])) return [];
+
+		$items = [];
+		foreach ($contents as $line) {
+			$lulu = product_settings($line['product_id'], $line['variation_id'] ?? 0);
+			if (!$lulu || !$lulu['page_count']) return [];
+			$items[] = ['pod_package_id' => $lulu['pod_package_id'], 'page_count' => $lulu['page_count'], 'quantity' => (int) $line['quantity']];
+		}
+		if (!$items) return [];
+
+		$levels = array_filter((array) ($settings['levels'] ?? []));
+		$rates = [];
+		foreach (shipping_options($items, $destination, $currency) as $option) {
+			$level = $option['level'] ?? '';
+			if (!isset($option['cost_excl_tax']) || !in_array($level, SHIPPING_LEVELS, true) || ($levels && !in_array($level, $levels, true))) continue;
+
+			$label = level_name($level);
+			if (!empty($settings['show_dates']) && !empty($option['min_delivery_date']) && !empty($option['max_delivery_date'])) {
+				$label .= ' (' . sprintf(__('arrives %1$s – %2$s', 'printapp'),
+					date_i18n('M j', strtotime($option['min_delivery_date'])), date_i18n('M j', strtotime($option['max_delivery_date']))) . ')';
+			}
+			$cost = (float) $option['cost_excl_tax'] * (1 + (float) ($settings['markup_percent'] ?? 0) / 100) + (float) ($settings['markup_fixed'] ?? 0);
+			$rates[] = ['level' => $level, 'label' => $label, 'cost' => round($cost, 2)];
+		}
+		usort($rates, function ($a, $b) { return $a['cost'] <=> $b['cost']; });
+		return $rates;
+	}
+
+	// woocommerce_shipping_init: loads the Lulu shipping method once WooCommerce's base class exists.
+	function shipping_init() {
+		if (connected() && !class_exists(__NAMESPACE__ . '\\Shipping_Method')) require_once dirname(__DIR__) . '/shipping/lulu.php';
+	}
+
+	// woocommerce_shipping_methods: the Lulu method, offered once a Lulu API key and secret are saved.
+	function add_shipping_method($methods) {
+		if (class_exists(__NAMESPACE__ . '\\Shipping_Method')) $methods[SHIPPING_METHOD] = __NAMESPACE__ . '\\Shipping_Method';
+		return $methods;
 	}
 
 	// The print-job request for Lulu's POST /print-jobs/.
@@ -185,7 +284,7 @@
 		return [
 			'external_id'      => 'wc-' . $order->get_order_number(),
 			'contact_email'    => get_option('print_app_lulu_contact_email') ?: get_option('admin_email'),
-			'shipping_level'   => shipping_level(),
+			'shipping_level'   => shipping_level($order),
 			'shipping_address' => shipping_address($order),
 			'line_items'       => $items,
 		];

@@ -72,7 +72,7 @@
 		foreach (lulu\SHIPPING_LEVELS as $level) {
 			echo '<option value="' . esc_attr($level) . '" ' . selected($current, $level, false) . '>' . esc_html($level) . '</option>';
 		}
-		echo '</select><p class="description">' . __('Lulu\'s shipping service for every order: MAIL is the cheapest and slowest, EXPRESS the fastest.', 'printapp') . '</p>';
+		echo '</select><p class="description">' . __('Lulu\'s shipping service for orders: MAIL is the cheapest and slowest, EXPRESS the fastest. To let customers choose, with Lulu\'s prices at checkout, add the "Lulu" shipping method to a zone under WooCommerce > Settings > Shipping; an order shipped with it uses the customer\'s choice instead.', 'printapp') . '</p>';
 	}
 
 	function print_app_lulu_complete_on_ship() {
